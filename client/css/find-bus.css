@@ -1,0 +1,756 @@
+/* =====================================================
+   UNIBUS — Find Bus Page Styles
+   Extends dashboard.css
+===================================================== */
+
+/* =====================================================
+   PAGE HEADER
+===================================================== */
+.page-header {
+    padding: 28px 28px 0;
+}
+
+.page-header h1 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 0 0 6px;
+    text-transform: none;
+    letter-spacing: 0.3px;
+}
+
+.page-header p {
+    font-size: 0.92rem;
+    color: var(--gray);
+    margin: 0;
+}
+
+/* =====================================================
+   SEARCH BAR
+===================================================== */
+.search-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin: 20px 28px;
+}
+
+.search-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.search-field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.search-field label i {
+    color: var(--primary);
+    font-size: 0.8rem;
+}
+
+.search-field input,
+.search-field select {
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--dark);
+    outline: none;
+    transition: 0.25s;
+    width: 100%;
+}
+
+.search-field select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 36px;
+}
+
+.search-field input:focus,
+.search-field select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+}
+
+.search-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-search,
+.btn-reset {
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.25s;
+    white-space: nowrap;
+}
+
+.btn-search {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(249,115,22,0.25);
+}
+
+.btn-search:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+.btn-reset {
+    background: var(--light-2);
+    color: var(--dark);
+}
+
+.btn-reset:hover {
+    background: #e2e8f0;
+}
+
+/* =====================================================
+   RECOMMENDATION BANNER
+===================================================== */
+#recommendationBanner {
+    padding: 0 28px;
+}
+
+.rec-banner {
+    background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(249,115,22,0.02));
+    border: 1.5px solid rgba(249,115,22,0.3);
+    border-radius: 16px;
+    padding: 22px 26px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.rec-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 90% 20%, rgba(249,115,22,0.1), transparent 55%);
+    pointer-events: none;
+}
+
+.rec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.rec-icon {
+    width: 70px;
+    height: 70px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.rec-info {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.rec-info h3 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin: 0 0 6px;
+    text-transform: none;
+    letter-spacing: 0.3px;
+}
+
+.rec-info p {
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin: 0;
+}
+
+.rec-info .rec-why {
+    font-size: 0.78rem;
+    color: var(--primary);
+    font-weight: 600;
+    margin-top: 6px;
+    display: block;
+}
+
+.rec-meta {
+    display: flex;
+    gap: 18px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.rec-meta span {
+    font-size: 0.8rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.rec-meta span i {
+    color: var(--primary);
+}
+
+.btn-rec-book {
+    background: var(--dark);
+    color: #fff;
+    padding: 14px 26px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.3s;
+    position: relative;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.btn-rec-book:hover {
+    background: var(--primary);
+    transform: translateY(-2px);
+    color: #fff;
+    box-shadow: 0 10px 25px rgba(249,115,22,0.35);
+}
+
+.rec-banner.no-rec {
+    background: var(--light);
+    border: 1px dashed var(--border);
+}
+
+.rec-banner.no-rec .rec-icon {
+    background: var(--gray-light);
+    opacity: 0.6;
+}
+
+/* =====================================================
+   BUS LIST HEADER
+===================================================== */
+.bus-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 28px 0;
+    gap: 12px;
+}
+
+.bus-list-header h2 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0.3px;
+}
+
+.bus-count {
+    font-size: 0.82rem;
+    color: var(--gray);
+    background: var(--light-2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* =====================================================
+   BUS LIST
+===================================================== */
+#busList {
+    padding: 18px 28px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bus-card {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 20px;
+    align-items: center;
+    transition: 0.3s;
+    position: relative;
+}
+
+.bus-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    transform: translateY(-2px);
+}
+
+.bus-card.recommended {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, #fff, rgba(249,115,22,0.03));
+    box-shadow: 0 10px 25px rgba(249,115,22,0.1);
+}
+
+.bus-card.full {
+    opacity: 0.7;
+}
+
+.bus-card.full:hover {
+    transform: none;
+    border-color: var(--border);
+    box-shadow: none;
+}
+
+/* ---------- Bus Number Badge ---------- */
+.bus-number-badge {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark-2) 100%);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.bus-number-badge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(249,115,22,0.3), transparent 60%);
+}
+
+.bus-number-badge i {
+    font-size: 1.4rem;
+    position: relative;
+    z-index: 1;
+}
+
+.bus-number-badge strong {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ---------- Bus Details ---------- */
+.bus-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.bus-route {
+    font-size: 0.88rem;
+    color: var(--dark);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bus-route i {
+    color: var(--primary);
+    font-size: 0.78rem;
+}
+
+.bus-route .arrow {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.bus-meta-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.bus-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--gray);
+}
+
+.bus-meta-item i {
+    color: var(--primary);
+    font-size: 0.8rem;
+    width: 14px;
+    text-align: center;
+}
+
+.bus-meta-item strong {
+    font-family: 'Oswald', sans-serif;
+    color: var(--dark);
+    font-weight: 600;
+    font-size: 0.92rem;
+    letter-spacing: 0.3px;
+}
+
+/* ---------- Status Badge ---------- */
+.bus-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'DM Sans', sans-serif;
+    width: fit-content;
+    margin-top: 4px;
+}
+
+.bus-status.ontime { background: rgba(16,185,129,0.12); color: #059669; }
+.bus-status.delayed { background: rgba(234,179,8,0.15); color: #a16207; }
+.bus-status.full { background: rgba(239,68,68,0.12); color: #dc2626; }
+.bus-status.live { background: rgba(59,130,246,0.12); color: #2563eb; }
+
+.bus-status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ---------- Seat Availability ---------- */
+.seat-availability {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.seat-bar {
+    width: 80px;
+    height: 6px;
+    background: var(--light-2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.seat-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.seat-bar-fill.low { background: linear-gradient(90deg, #eab308, #ca8a04); }
+.seat-bar-fill.critical { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+.seat-text {
+    font-size: 0.82rem;
+    color: var(--dark);
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+}
+
+.seat-text strong {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.95rem;
+    color: var(--primary);
+}
+
+/* ---------- Actions ---------- */
+.bus-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 140px;
+}
+
+.btn-book {
+    background: var(--primary);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: 0.3s;
+    width: 100%;
+}
+
+.btn-book:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(249,115,22,0.3);
+    color: #fff;
+}
+
+.btn-book:disabled {
+    background: var(--gray-light);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-track {
+    background: transparent;
+    color: var(--dark);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1.5px solid var(--border);
+    transition: 0.25s;
+    width: 100%;
+}
+
+.btn-track:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+.empty-buses {
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    padding: 60px 30px;
+    text-align: center;
+}
+
+.empty-buses i {
+    font-size: 3.5rem;
+    color: var(--primary);
+    opacity: 0.4;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.empty-buses h3 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.3rem;
+    color: var(--dark);
+    margin-bottom: 8px;
+}
+
+.empty-buses p {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* =====================================================
+   SKELETON LOADING
+===================================================== */
+.skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    grid-template-columns: unset !important;
+}
+
+.skeleton-line {
+    height: 16px;
+    background: linear-gradient(90deg, var(--light-2) 25%, #e2e8f0 50%, var(--light-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+.skeleton-line:nth-child(2) { width: 70%; }
+.skeleton-line:nth-child(3) { width: 50%; }
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* =====================================================
+   TOASTS
+===================================================== */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 20px;
+    min-width: 280px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 4px solid var(--primary);
+    animation: toastIn 0.35s ease;
+}
+
+.toast.success { border-left-color: var(--green); }
+.toast.error   { border-left-color: #dc2626; }
+.toast.info    { border-left-color: var(--primary); }
+
+.toast i { font-size: 1.2rem; }
+.toast.success i { color: var(--green); }
+.toast.error i   { color: #dc2626; }
+.toast.info i    { color: var(--primary); }
+
+.toast-content { flex: 1; }
+.toast-content h5 {
+    font-size: 0.88rem; font-weight: 600;
+    margin: 0 0 2px; color: var(--dark);
+}
+.toast-content p {
+    font-size: 0.78rem; color: var(--gray); margin: 0;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+@media (max-width: 1100px) {
+    .search-bar {
+        grid-template-columns: 1fr 1fr;
+    }
+    .search-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 900px) {
+    .bus-card {
+        grid-template-columns: 70px 1fr;
+    }
+    .bus-number-badge {
+        width: 70px;
+        height: 70px;
+    }
+    .bus-number-badge i { font-size: 1.1rem; }
+    .bus-number-badge strong { font-size: 0.9rem; }
+
+    .bus-actions {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        min-width: auto;
+    }
+    .btn-book, .btn-track { flex: 1; }
+}
+
+@media (max-width: 768px) {
+    .page-header { padding: 20px 20px 0; }
+    .search-bar {
+        margin: 16px 20px;
+        padding: 16px;
+        grid-template-columns: 1fr;
+    }
+    #recommendationBanner { padding: 0 20px; }
+    .rec-banner {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px 20px;
+        padding-top: 40px;
+    }
+    .rec-badge { top: 12px; right: 12px; }
+    .rec-icon { width: 60px; height: 60px; font-size: 1.6rem; }
+    .rec-meta { justify-content: center; }
+    .btn-rec-book { width: 100%; justify-content: center; }
+    .bus-list-header { padding: 8px 20px 0; }
+    #busList { padding: 16px 20px 30px; }
+    .bus-meta-row { gap: 12px; }
+    .bus-meta-item { font-size: 0.78rem; }
+    .toast-container { left: 20px; right: 20px; }
+    .toast { min-width: auto; }
+}
+
+@media (max-width: 480px) {
+    .page-header h1 { font-size: 1.4rem; }
+    .bus-card { padding: 16px; gap: 14px; }
+    .bus-number-badge { width: 60px; height: 60px; }
+    .bus-number-badge strong { font-size: 0.8rem; }
+    .bus-actions { flex-direction: column; }
+}

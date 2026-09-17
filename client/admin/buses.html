@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Buses – UniBus Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin/buses.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/admin/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/admin/buses.html" class="nav-item active"><i class="fas fa-bus"></i><span>Manage Buses</span></a>
+        <a href="/admin/routes.html" class="nav-item"><i class="fas fa-route"></i><span>Manage Routes</span></a>
+        <a href="/admin/drivers.html" class="nav-item"><i class="fas fa-id-card"></i><span>Manage Drivers</span></a>
+        <a href="/admin/schedules.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Schedules</span></a>
+        <a href="/admin/live-buses.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Live Monitoring</span></a>
+        <a href="/admin/reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+        <a href="/admin/users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="/admin/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <a href="/admin/notifications.html" class="icon-btn" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notifBadge">0</span>
+            </a>
+            <a href="/admin/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">admin</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>Manage Buses</h1>
+            <p>Add, edit, or remove buses from the fleet.</p>
+        </div>
+        <button type="button" class="btn-add" id="addBusBtn">
+            <i class="fas fa-plus"></i> Add New Bus
+        </button>
+    </div>
+
+    <!-- SEARCH & FILTERS -->
+    <div class="filter-bar">
+        <div class="filter-field search-field">
+            <label><i class="fas fa-search"></i> Search</label>
+            <input type="text" id="searchInput" placeholder="Bus number or plate..." />
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-toggle-on"></i> Status</label>
+            <select id="statusFilter">
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="inactive">Idle</option>
+            </select>
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-id-card"></i> Driver</label>
+            <select id="driverFilter">
+                <option value="all">All Drivers</option>
+                <option value="assigned">Assigned</option>
+                <option value="unassigned">Unassigned</option>
+            </select>
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-sort"></i> Sort By</label>
+            <select id="sortFilter">
+                <option value="number">Bus Number</option>
+                <option value="capacity">Capacity</option>
+                <option value="status">Status</option>
+            </select>
+        </div>
+        <button type="button" class="btn-reset" id="resetFiltersBtn">
+            <i class="fas fa-redo"></i> Reset
+        </button>
+    </div>
+
+    <!-- BUS COUNT -->
+    <div class="bus-count-bar">
+        <span id="busCount">0 buses</span>
+    </div>
+
+    <!-- BUS TABLE -->
+    <div id="busTableContainer">
+        <div class="loading-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     ADD / EDIT BUS MODAL
+============================================================ -->
+<div class="modal-overlay" id="busModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 id="modalTitle"><i class="fas fa-bus"></i> Add New Bus</h2>
+            <button type="button" class="modal-close" id="closeModalBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="busForm">
+            <div class="modal-body">
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Bus Number <span class="req">*</span></label>
+                        <input type="text" id="busNumber" placeholder="e.g. UB-06" required />
+                        <span class="field-error" id="errBusNumber"></span>
+                    </div>
+                    <div class="form-field">
+                        <label>License Plate <span class="req">*</span></label>
+                        <input type="text" id="plateNumber" placeholder="e.g. DHA-6666" required />
+                        <span class="field-error" id="errPlateNumber"></span>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Total Seats <span class="req">*</span></label>
+                        <input type="number" id="capacity" placeholder="40" min="1" max="100" required />
+                        <span class="field-error" id="errCapacity"></span>
+                    </div>
+                    <div class="form-field">
+                        <label>Bus Type <span class="req">*</span></label>
+                        <select id="busType" required>
+                            <option value="standard">Standard</option>
+                            <option value="luxury">Luxury</option>
+                            <option value="electric">Electric</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Assigned Driver</label>
+                        <select id="driverSelect">
+                            <option value="">Unassigned</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Status <span class="req">*</span></label>
+                        <select id="busStatus" required>
+                            <option value="active">Active</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="inactive">Idle / Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label>Features</label>
+                    <div class="checkbox-group">
+                        <label class="check-item"><input type="checkbox" value="AC" /> <span>AC</span></label>
+                        <label class="check-item"><input type="checkbox" value="WiFi" /> <span>WiFi</span></label>
+                        <label class="check-item"><input type="checkbox" value="USB Charging" /> <span>USB Charging</span></label>
+                        <label class="check-item"><input type="checkbox" value="Wheelchair Access" /> <span>Wheelchair Access</span></label>
+                        <label class="check-item"><input type="checkbox" value="CCTV" /> <span>CCTV</span></label>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label>Notes (Optional)</label>
+                    <textarea id="notes" rows="2" placeholder="Any additional information..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+                <button type="submit" class="btn-save" id="saveBtn">
+                    <i class="fas fa-save"></i> Save Bus
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================
+     DELETE CONFIRMATION MODAL
+============================================================ -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header danger">
+            <h2><i class="fas fa-exclamation-triangle"></i> Delete Bus</h2>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteBusName">this bus</strong>?</p>
+            <p class="modal-hint">This action cannot be undone. Any upcoming trips will be cancelled.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelDeleteBtn">Cancel</button>
+            <button type="button" class="btn-danger" id="confirmDeleteBtn">
+                <i class="fas fa-trash"></i> Yes, Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/js/admin/buses.js"></script>
+</body>
+</html>

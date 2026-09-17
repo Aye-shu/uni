@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Passenger List – UniBus Driver</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/driver/driver.css">
+    <link rel="stylesheet" href="/css/driver/driver-passengers.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/driver/dashboard.html" class="nav-item">
+            <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+        </a>
+        <a href="/driver/todays-trips.html" class="nav-item">
+            <i class="fas fa-list"></i><span>My Trips</span>
+        </a>
+        <a href="/driver/passenger-list.html" class="nav-item active">
+            <i class="fas fa-users"></i><span>Passengers</span>
+        </a>
+        <a href="/driver/report-problem.html" class="nav-item">
+            <i class="fas fa-exclamation-triangle"></i><span>Report Problem</span>
+        </a>
+        <a href="/driver/profile.html" class="nav-item">
+            <i class="fas fa-user"></i><span>Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <div class="live-pill" id="livePill">
+                <span class="live-dot"></span>
+                <span class="text">Live</span>
+            </div>
+            <a href="/driver/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">D</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Driver</span>
+                    <span class="user-role" id="userRole">driver</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- LOADING -->
+    <div class="page-loading" id="pageLoading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading trip data...</p>
+    </div>
+
+    <!-- EMPTY / NO TRIP -->
+    <div class="page-empty" id="pageEmpty" style="display:none;">
+        <i class="fas fa-bus-slash"></i>
+        <h2>No trip selected</h2>
+        <p>Choose a trip from My Trips to view passengers.</p>
+        <a href="/driver/todays-trips.html" class="btn-primary-cta">
+            <i class="fas fa-list"></i> Go to My Trips
+        </a>
+    </div>
+
+    <!-- TRIP CONTENT -->
+    <div id="tripContent" style="display:none;">
+
+        <!-- TRIP SUMMARY HEADER -->
+        <div class="trip-summary-header">
+            <div class="trip-summary-left">
+                <div class="trip-id-big" id="tripId">TR-XXX</div>
+                <div class="trip-route" id="tripRoute">
+                    <i class="fas fa-route"></i> <span>Loading...</span>
+                </div>
+                <div class="trip-meta">
+                    <span class="meta-chip" id="metaBus"><i class="fas fa-bus"></i> Bus —</span>
+                    <span class="meta-chip" id="metaDate"><i class="fas fa-calendar-day"></i> —</span>
+                    <span class="meta-chip" id="metaTime"><i class="fas fa-clock"></i> —</span>
+                    <span class="status-badge" id="statusBadge">—</span>
+                </div>
+            </div>
+            <div class="trip-summary-actions">
+                <button type="button" class="btn-report-top" id="reportIssueBtnTop">
+                    <i class="fas fa-flag"></i> Report Issue
+                </button>
+                <button type="button" class="btn-end-trip-top" id="endTripBtnTop">
+                    <i class="fas fa-stop-circle"></i> End Trip
+                </button>
+            </div>
+        </div>
+
+        <!-- LIVE PROGRESS -->
+        <div class="progress-section" id="progressSection">
+            <h3><i class="fas fa-map-signs"></i> Route Progress</h3>
+            <div class="progress-chain" id="progressChain">
+                <div class="progress-loading">Loading stops...</div>
+            </div>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stats-row stats-row-4">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-ticket-alt"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBooked">0</h3>
+                    <p>Total Booked</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBoarded">0</h3>
+                    <p>Boarded</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-info">
+                    <h3 id="statPending">0</h3>
+                    <p>Not Boarded</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red"><i class="fas fa-chair"></i></div>
+                <div class="stat-info">
+                    <h3 id="statEmpty">0</h3>
+                    <p>Empty Seats</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEAT MAP -->
+        <div class="content-card seat-map-card">
+            <div class="card-header">
+                <h2><i class="fas fa-th"></i> Seat Map</h2>
+                <div class="seat-counter" id="seatCounter">0 / 0 boarded</div>
+            </div>
+            <div class="card-body">
+                <div class="bus-container">
+                    <div class="bus-driver">
+                        <i class="fas fa-steering-wheel"></i>
+                        <span>Driver</span>
+                    </div>
+                    <div class="seat-grid" id="seatGrid"></div>
+                    <div class="bus-back"><span>Back of Bus</span></div>
+                </div>
+                <div class="seat-legend">
+                    <span><i class="seat-dot boarded"></i> Boarded</span>
+                    <span><i class="seat-dot booked"></i> Booked</span>
+                    <span><i class="seat-dot cancelled"></i> Cancelled</span>
+                    <span><i class="seat-dot empty"></i> Empty</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASSENGER LIST -->
+        <div class="content-card">
+            <div class="card-header passenger-header">
+                <h2><i class="fas fa-list"></i> Passenger List</h2>
+                <div class="passenger-controls">
+                    <input type="text" id="passengerSearch" placeholder="Search name or ID..." />
+                    <select id="passengerFilter">
+                        <option value="all">All</option>
+                        <option value="boarded">Boarded</option>
+                        <option value="not-boarded">Not Boarded</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="passengerList">
+                    <div class="passenger-loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading passengers...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTION BAR (sticky on mobile) -->
+        <div class="action-bar">
+            <button type="button" class="action-btn-all" id="markAllBoardedBtn">
+                <i class="fas fa-check-double"></i> Mark All Boarded
+            </button>
+            <button type="button" class="action-btn-report" id="reportIssueBtn">
+                <i class="fas fa-flag"></i> Report
+            </button>
+            <button type="button" class="action-btn-end" id="endTripBtn">
+                <i class="fas fa-stop-circle"></i> End Trip
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ============ END TRIP MODAL ============ -->
+<div class="modal-overlay" id="endModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header danger">
+            <h2><i class="fas fa-stop-circle"></i> End Trip</h2>
+        </div>
+        <div class="modal-body">
+            <p>End <strong id="endTripIdLabel">this trip</strong>?</p>
+            <div class="end-summary">
+                <div class="end-row">
+                    <span><i class="fas fa-check-circle" style="color:#10b981;"></i> Boarded</span>
+                    <strong id="endBoarded">0</strong>
+                </div>
+                <div class="end-row">
+                    <span><i class="fas fa-hourglass-half" style="color:#eab308;"></i> Not Boarded</span>
+                    <strong id="endPending">0</strong>
+                </div>
+            </div>
+            <p class="modal-hint">
+                Ending this trip will <strong>stop GPS broadcasting</strong> and mark it as completed.
+            </p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelEndBtn">Cancel</button>
+            <button type="button" class="btn-danger" id="confirmEndBtn">
+                <i class="fas fa-stop"></i> Yes, End Trip
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ REPORT ISSUE MODAL ============ -->
+<div class="modal-overlay" id="reportModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2><i class="fas fa-flag"></i> Report an Issue</h2>
+            <button type="button" class="modal-close" id="closeReportBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="reportForm">
+            <div class="modal-body">
+                <div class="form-field">
+                    <label>Issue Type <span class="req">*</span></label>
+                    <select id="reportType" required>
+                        <option value="">Select issue</option>
+                        <option value="traffic">Traffic Jam</option>
+                        <option value="breakdown">Vehicle Breakdown</option>
+                        <option value="accident">Accident</option>
+                        <option value="passenger">Passenger Issue</option>
+                        <option value="weather">Bad Weather</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <span class="field-error" id="errReportType"></span>
+                </div>
+
+                <div class="form-field">
+                    <label>Severity <span class="req">*</span></label>
+                    <div class="severity-row">
+                        <label class="sev-option">
+                            <input type="radio" name="severity" value="low" checked />
+                            <span class="sev-badge low">Low</span>
+                        </label>
+                        <label class="sev-option">
+                            <input type="radio" name="severity" value="medium" />
+                            <span class="sev-badge medium">Medium</span>
+                        </label>
+                        <label class="sev-option">
+                            <input type="radio" name="severity" value="high" />
+                            <span class="sev-badge high">High</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label>Description (Optional)</label>
+                    <textarea id="reportDescription" rows="3" placeholder="Add more details..."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelReportBtn">Cancel</button>
+                <button type="submit" class="btn-save" id="submitReportBtn">
+                    <i class="fas fa-paper-plane"></i> Submit Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============ TRIP COMPLETED MODAL ============ -->
+<div class="modal-overlay" id="completedModal">
+    <div class="modal-box modal-sm">
+        <div class="completion-content">
+            <div class="completion-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2>Trip Completed!</h2>
+            <p>Great job, driver. Trip has been marked as completed.</p>
+
+            <div class="completion-stats" id="completionStats">
+                <!-- Filled by JS -->
+            </div>
+
+            <div class="completion-actions">
+                <a href="/driver/todays-trips.html" class="btn-primary-cta">
+                    <i class="fas fa-list"></i> Back to My Trips
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/driver/passengers.js"></script>
+</body>
+</html>

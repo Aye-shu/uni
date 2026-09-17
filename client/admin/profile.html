@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile – UniBus Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/admin/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/admin/buses.html" class="nav-item"><i class="fas fa-bus"></i><span>Manage Buses</span></a>
+        <a href="/admin/routes.html" class="nav-item"><i class="fas fa-route"></i><span>Manage Routes</span></a>
+        <a href="/admin/drivers.html" class="nav-item"><i class="fas fa-id-card"></i><span>Manage Drivers</span></a>
+        <a href="/admin/schedules.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Schedules</span></a>
+        <a href="/admin/live-buses.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Live Monitoring</span></a>
+        <a href="/admin/reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+        <a href="/admin/users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="/admin/profile.html" class="nav-item active"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <a href="/admin/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">admin</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <div class="page-header">
+        <div>
+            <h1>My Profile</h1>
+            <p>View and manage your admin account.</p>
+        </div>
+    </div>
+
+    <div class="profile-header-card" id="profileHeader">
+        <div class="profile-avatar" id="profileAvatar">--</div>
+        <div class="profile-header-info">
+            <h2 id="headerName">Loading...</h2>
+            <div class="profile-meta">
+                <span class="meta-item" id="headerEmail"><i class="fas fa-envelope"></i> —</span>
+                <span class="role-badge" id="headerRole">Admin</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-tabs" id="profileTabs">
+        <button type="button" class="ptab active" data-tab="personal">
+            <i class="fas fa-user"></i> Personal Info
+        </button>
+        <button type="button" class="ptab" data-tab="security">
+            <i class="fas fa-shield-alt"></i> Security
+        </button>
+    </div>
+
+    <div class="tab-panel active" id="panelPersonal">
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-user-circle"></i> Personal Information</h3>
+                <button type="button" class="btn-edit" id="editToggleBtn">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+            </div>
+            <form id="personalForm">
+                <div class="form-row-2">
+                    <div class="form-field readonly">
+                        <label>Full Name <i class="fas fa-lock"></i></label>
+                        <input type="text" id="fullName" readonly />
+                    </div>
+                    <div class="form-field readonly">
+                        <label>Email <i class="fas fa-lock"></i></label>
+                        <input type="email" id="email" readonly />
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phone" placeholder="+880 1XXXXXXXXX" disabled />
+                    </div>
+                    <div class="form-field readonly">
+                        <label>Role <i class="fas fa-lock"></i></label>
+                        <input type="text" id="role" readonly />
+                    </div>
+                </div>
+                <div class="form-actions" id="personalActions" style="display:none;">
+                    <button type="button" class="btn-cancel" id="cancelPersonalBtn">Cancel</button>
+                    <button type="submit" class="btn-save" id="savePersonalBtn">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-chart-line"></i> Account Summary</h3>
+            </div>
+            <div class="activity-grid">
+                <div class="activity-item">
+                    <div class="activity-icon blue"><i class="fas fa-calendar-check"></i></div>
+                    <div class="activity-info">
+                        <strong id="statSince">—</strong>
+                        <span>Member Since</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon green"><i class="fas fa-circle"></i></div>
+                    <div class="activity-info">
+                        <strong>Active</strong>
+                        <span>Account Status</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon orange"><i class="fas fa-shield-alt"></i></div>
+                    <div class="activity-info">
+                        <strong>Full</strong>
+                        <span>Access Level</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-panel" id="panelSecurity">
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-lock"></i> Change Password</h3>
+            </div>
+            <form id="passwordForm">
+                <div class="form-field">
+                    <label>Current Password <span class="req">*</span></label>
+                    <div class="pw-wrap">
+                        <input type="password" id="currentPassword" placeholder="Current password" required />
+                        <button type="button" class="pw-toggle" onclick="togglePw('currentPassword', this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>New Password <span class="req">*</span></label>
+                        <div class="pw-wrap">
+                            <input type="password" id="newPassword" placeholder="Min 8 chars" minlength="8" required />
+                            <button type="button" class="pw-toggle" onclick="togglePw('newPassword', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Confirm <span class="req">*</span></label>
+                        <div class="pw-wrap">
+                            <input type="password" id="confirmPassword" placeholder="Repeat" minlength="8" required />
+                            <button type="button" class="pw-toggle" onclick="togglePw('confirmPassword', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="savePasswordBtn">
+                        <i class="fas fa-key"></i> Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+let user = null;
+let profile = null;
+let isEditing = false;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    user = await checkAuth();
+    if (!user) return;
+
+    document.getElementById('userName').textContent = user.name || 'Admin';
+    document.getElementById('userRole').textContent = user.role || 'admin';
+    document.getElementById('userAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
+
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    menuToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 991 && sidebar.classList.contains('open') &&
+            !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        try { await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }); } catch {}
+        window.location.href = '/login.html';
+    });
+
+    document.querySelectorAll('.ptab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel' + capitalize(tab.dataset.tab)).classList.add('active');
+        });
+    });
+
+    document.getElementById('editToggleBtn')?.addEventListener('click', toggleEdit);
+    document.getElementById('cancelPersonalBtn')?.addEventListener('click', cancelEdit);
+    document.getElementById('personalForm')?.addEventListener('submit', savePersonal);
+    document.getElementById('passwordForm')?.addEventListener('submit', savePassword);
+
+    renderProfile();
+});
+
+async function checkAuth() {
+    try {
+        const res = await fetch('/api/auth/get-session', { credentials: 'include' });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (!data.user) throw new Error();
+        if (data.user.role !== 'admin') {
+            window.location.href = data.user.role === 'student'
+                ? '/student/dashboard.html' : '/driver/dashboard.html';
+            return null;
+        }
+        return data.user;
+    } catch {
+        window.location.href = '/login.html';
+        return null;
+    }
+}
+
+function renderProfile() {
+    profile = {
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        role: user.role || 'admin',
+        createdAt: user.createdAt || null,
+    };
+
+    const initials = getInitials(profile.name);
+    document.getElementById('profileAvatar').textContent = initials;
+    document.getElementById('userAvatar').textContent = initials.charAt(0);
+
+    document.getElementById('headerName').textContent = profile.name || 'Admin';
+    document.getElementById('headerEmail').innerHTML = `<i class="fas fa-envelope"></i> ${escapeHtml(profile.email)}`;
+    document.getElementById('headerRole').textContent = 'Admin';
+
+    document.getElementById('fullName').value = profile.name;
+    document.getElementById('email').value = profile.email;
+    document.getElementById('phone').value = profile.phone;
+    document.getElementById('role').value = capitalize(profile.role);
+
+    if (profile.createdAt) {
+        const d = new Date(profile.createdAt);
+        document.getElementById('statSince').textContent =
+            d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+}
+
+function getInitials(name) {
+    if (!name) return '--';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function toggleEdit() {
+    isEditing = !isEditing;
+    const btn = document.getElementById('editToggleBtn');
+    const actions = document.getElementById('personalActions');
+    document.getElementById('phone').disabled = !isEditing;
+
+    if (isEditing) {
+        btn.classList.add('editing');
+        btn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+        actions.style.display = 'flex';
+        document.getElementById('phone').focus();
+    } else {
+        btn.classList.remove('editing');
+        btn.innerHTML = '<i class="fas fa-pen"></i> Edit';
+        actions.style.display = 'none';
+    }
+}
+
+function cancelEdit() {
+    document.getElementById('phone').value = profile.phone || '';
+    toggleEdit();
+}
+
+async function savePersonal(e) {
+    e.preventDefault();
+    if (!isEditing) return;
+
+    const phone = document.getElementById('phone').value.trim();
+    const btn = document.getElementById('savePersonalBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const res = await fetch(`/api/admin/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ phone }),
+        });
+
+        if (!res.ok) throw new Error('Update failed');
+
+        profile.phone = phone;
+        toggleEdit();
+        showToast('success', 'Profile updated', 'Your phone number has been saved.');
+    } catch (err) {
+        showToast('error', 'Update failed', err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function savePassword(e) {
+    e.preventDefault();
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (newPassword.length < 8) return showToast('error', 'Too short', 'Min 8 characters');
+    if (newPassword !== confirmPassword) return showToast('error', 'Mismatch', 'Passwords do not match');
+
+    const btn = document.getElementById('savePasswordBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+    try {
+        const res = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ currentPassword, newPassword }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Password update failed');
+        }
+
+        document.getElementById('passwordForm').reset();
+        showToast('success', 'Password updated', 'Use your new password next login.');
+    } catch (err) {
+        showToast('error', 'Update failed', err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+function togglePw(id, btn) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+    } else {
+        input.type = 'password';
+        btn.innerHTML = '<i class="fas fa-eye"></i>';
+    }
+}
+
+function showToast(type, title, message = '') {
+    const c = document.getElementById('toastContainer');
+    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<i class="fas ${icons[type]}"></i>
+        <div class="toast-content"><h5>${escapeHtml(title)}</h5>${message ? `<p>${escapeHtml(message)}</p>` : ''}</div>`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track Bus – UniBus</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/track-bus.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/student/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/student/classes.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>My Classes</span></a>
+        <a href="/student/find-bus.html" class="nav-item"><i class="fas fa-search"></i><span>Find Bus</span></a>
+        <a href="/student/bookings.html" class="nav-item"><i class="fas fa-ticket-alt"></i><span>My Bookings</span></a>
+        <a href="/student/track-bus.html" class="nav-item active"><i class="fas fa-map-marked-alt"></i><span>Track Bus</span></a>
+        <a href="/student/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <div class="connection-status" id="connectionStatus">
+                <span class="dot"></span>
+                <span class="text">Connecting...</span>
+            </div>
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar">S</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Student</span>
+                    <span class="user-role" id="userRole">student</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>Track Bus</h1>
+            <p>Live location of your booked bus.</p>
+        </div>
+        <a href="/student/bookings.html" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Back to Bookings
+        </a>
+    </div>
+
+    <!-- MAIN LAYOUT -->
+    <div class="track-layout">
+
+        <!-- MAP CONTAINER -->
+        <div class="map-wrapper">
+            <div id="map"></div>
+
+            <!-- Recenter button -->
+            <button type="button" class="map-btn recenter-btn" onclick="recenterMap()" title="Recenter on bus">
+                <i class="fas fa-crosshairs"></i>
+            </button>
+
+            <!-- Fullscreen button -->
+            <button type="button" class="map-btn fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+
+            <!-- Delay alert banner -->
+            <div class="alert-banner" id="alertBanner" style="display:none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="alertText">Delay reported</span>
+            </div>
+
+            <!-- Loading overlay -->
+            <div class="map-loading" id="mapLoading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading bus location...</span>
+            </div>
+
+            <!-- Empty state -->
+            <div class="map-empty" id="mapEmpty" style="display:none;">
+                <i class="fas fa-bus-slash"></i>
+                <h3>No active trips to track</h3>
+                <p>You don't have any booked trips right now.</p>
+                <a href="/student/find-bus.html" class="btn-primary-cta">
+                    <i class="fas fa-search"></i> Find a Bus
+                </a>
+            </div>
+        </div>
+
+        <!-- INFO PANEL -->
+        <aside class="info-panel" id="infoPanel">
+
+            <!-- Trip Info Card -->
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h3><i class="fas fa-bus"></i> Trip Details</h3>
+                    <span class="status-badge" id="statusBadge">—</span>
+                </div>
+
+                <div class="panel-row">
+                    <span>Bus</span>
+                    <strong id="infoBus">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Route</span>
+                    <strong id="infoRoute">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Direction</span>
+                    <strong id="infoDirection">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Departure</span>
+                    <strong id="infoDeparture">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Your Seat</span>
+                    <strong id="infoSeat">—</strong>
+                </div>
+                <div class="panel-row highlighted">
+                    <span>ETA to Your Stop</span>
+                    <strong id="infoEta">—</strong>
+                </div>
+            </div>
+
+            <!-- Route Progress -->
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h3><i class="fas fa-route"></i> Route Progress</h3>
+                </div>
+                <div class="progress-timeline" id="progressTimeline">
+                    <div class="timeline-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading stops...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="panel-card">
+                <button type="button" class="action-btn primary" onclick="reportIssue()">
+                    <i class="fas fa-flag"></i> Report an Issue
+                </button>
+                <button type="button" class="action-btn" onclick="refreshLocationClick()">
+                    <i class="fas fa-sync-alt"></i> Refresh Location
+                </button>
+            </div>
+
+        </aside>
+
+    </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================================
+     REPORT ISSUE MODAL
+============================================================ -->
+<div class="modal-overlay" id="reportModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-flag"></i> Report an Issue</h2>
+            <button type="button" class="modal-close" onclick="closeReportModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="report-field">
+                <label for="reportIssueType">Issue Type <span class="req">*</span></label>
+                <select id="reportIssueType" required>
+                    <option value="">Select an issue</option>
+                    <option value="Bus is late">Bus is late</option>
+                    <option value="Bus is full">Bus is full</option>
+                    <option value="Driver skipped my stop">Driver skipped my stop</option>
+                    <option value="AC not working">AC not working</option>
+                    <option value="Bus cleanliness">Bus cleanliness</option>
+                    <option value="Driver behavior">Driver behavior</option>
+                    <option value="Other">Other</option>
+                </select>
+                <span class="field-error" id="errIssueType"></span>
+            </div>
+
+            <div class="report-field">
+                <label for="reportDescription">Description (optional)</label>
+                <textarea id="reportDescription" rows="3" placeholder="Add more details about the issue..."></textarea>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" onclick="closeReportModal()">Cancel</button>
+            <button type="button" class="btn-save" id="submitReportBtn" onclick="submitReport()">
+                <i class="fas fa-paper-plane"></i> Submit Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/student/track-bus.js"></script>
+</body>
+</html>

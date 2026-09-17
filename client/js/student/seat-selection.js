@@ -1,0 +1,409 @@
+/* =====================================================
+   UNIBUS — Seat Selection Page Logic
+===================================================== */
+
+let currentTrip = null;
+let currentSeats = { available: [], taken: [], total: 0, capacity: 0 };
+let selectedSeat = null;
+let user = null;
+
+const FARE = 50; // Fare per seat
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // ---------- Auth ----------
+    user = await checkAuth();
+    if (!user) return;
+
+    document.getElementById('userName').textContent = user.name || 'Student';
+    document.getElementById('userRole').textContent = user.role || 'student';
+    document.getElementById('userAvatar').textContent = (user.name || 'S').charAt(0).toUpperCase();
+
+    // ---------- Get tripId from URL ----------
+    const params = new URLSearchParams(window.location.search);
+    const tripId = params.get('tripId');
+
+    if (!tripId) {
+        // Maybe from localStorage
+        const stored = localStorage.getItem('unibus_selected_trip');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            window.location.href = `/student/seat-selection.html?tripId=${parsed.tripId}`;
+            return;
+        }
+        showToast('error', 'No trip selected', 'Please choose a bus first.');
+        setTimeout(() => window.location.href = '/student/find-bus.html', 1500);
+        return;
+    }
+
+    // ---------- Sidebar toggle ----------
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    menuToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 991 &&
+            sidebar.classList.contains('open') &&
+            !sidebar.contains(e.target) &&
+            !menuToggle.contains(e.target)) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    // ---------- Logout ----------
+    document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        try { await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }); } catch {}
+        window.location.href = '/login.html';
+    });
+
+    // ---------- Load data ----------
+    await loadTrip(tripId);
+    await loadSeats(tripId);
+
+    // ---------- Buttons ----------
+    document.getElementById('confirmBtn')?.addEventListener('click', openConfirmModal);
+    document.getElementById('cancelBtn')?.addEventListener('click', () => {
+        window.location.href = '/student/find-bus.html';
+    });
+    document.getElementById('modalCancelBtn')?.addEventListener('click', closeConfirmModal);
+    document.getElementById('modalConfirmBtn')?.addEventListener('click', createBooking);
+    document.getElementById('confirmModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'confirmModal') closeConfirmModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeConfirmModal();
+    });
+});
+
+/* =====================================================
+   AUTH
+===================================================== */
+async function checkAuth() {
+    try {
+        const res = await fetch('/api/auth/get-session', { credentials: 'include' });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (!data.user) throw new Error();
+        if (data.user.role !== 'student') {
+            window.location.href = data.user.role === 'driver'
+                ? '/driver/dashboard.html'
+                : '/admin/dashboard.html';
+            return null;
+        }
+        return data.user;
+    } catch {
+        window.location.href = '/login.html';
+        return null;
+    }
+}
+
+/* =====================================================
+   LOAD TRIP DETAILS
+===================================================== */
+async function loadTrip(tripId) {
+    try {
+        const res = await fetch(`/api/trips/${tripId}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Trip not found');
+
+        currentTrip = data.data;
+        renderTripSummary();
+        renderPanel();
+    } catch (err) {
+        showToast('error', 'Failed to load trip', err.message);
+        setTimeout(() => window.location.href = '/student/find-bus.html', 1500);
+    }
+}
+
+/* =====================================================
+   LOAD SEATS
+===================================================== */
+async function loadSeats(tripId) {
+    try {
+        const res = await fetch(`/api/trips/${tripId}/seats`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load seats');
+
+        currentSeats = data.data;
+        renderSeatGrid();
+    } catch (err) {
+        console.error('Seat load error:', err);
+        showToast('error', 'Failed to load seats', err.message);
+        document.getElementById('seatGrid').innerHTML = `
+            <div class="seat-loading" style="color:#dc2626;">
+                <i class="fas fa-exclamation-circle"></i> Could not load seats
+            </div>`;
+    }
+}
+
+/* =====================================================
+   RENDER TRIP SUMMARY
+===================================================== */
+function renderTripSummary() {
+    const t = currentTrip;
+    const busNum = t.bus?.busNumber || 'Bus';
+    const route = t.route?.name || 'Campus Route';
+    const date = t.date ? new Date(t.date).toLocaleDateString('en-US', {
+        day: 'numeric', month: 'short', year: 'numeric'
+    }) : 'Today';
+
+    document.getElementById('tripSummary').innerHTML = `
+        <div class="trip-summary-grid">
+            <div class="trip-summary-item">
+                <span>Bus</span>
+                <strong class="bus-badge">${escapeHtml(busNum)}</strong>
+            </div>
+            <div class="trip-summary-item">
+                <span>Route</span>
+                <strong>${escapeHtml(route)}</strong>
+            </div>
+            <div class="trip-summary-item">
+                <span>Date</span>
+                <strong>${date}</strong>
+            </div>
+            <div class="trip-summary-item">
+                <span>Departure</span>
+                <strong>${formatTime(t.departureTime)}</strong>
+            </div>
+            <div class="trip-summary-item">
+                <span>Direction</span>
+                <strong>${escapeHtml(t.direction || 'outbound')}</strong>
+            </div>
+        </div>
+    `;
+}
+
+/* =====================================================
+   RENDER SEAT GRID
+===================================================== */
+function renderSeatGrid() {
+    const grid = document.getElementById('seatGrid');
+    const { capacity, taken } = currentSeats;
+
+    if (!capacity) {
+        grid.innerHTML = `<div class="seat-loading">No seats found for this trip.</div>`;
+        return;
+    }
+
+    // 4 seats per row (2 left, 2 right, aisle in middle)
+    // Layout: [L1] [L2] [aisle] [R1] [R2]
+    const takenSet = new Set(taken.map(String));
+    let html = '';
+
+    const rows = Math.ceil(capacity / 4);
+
+    for (let r = 0; r < rows; r++) {
+        // Left side seats
+        const left1 = r * 4 + 1;
+        const left2 = r * 4 + 2;
+        const right1 = r * 4 + 3;
+        const right2 = r * 4 + 4;
+
+        html += seatCell(left1, takenSet, capacity);
+        html += seatCell(left2, takenSet, capacity);
+
+        // Aisle gap
+        html += `<div class="seat-aisle"></div>`;
+
+        html += seatCell(right1, takenSet, capacity);
+        html += seatCell(right2, takenSet, capacity);
+    }
+
+    grid.innerHTML = html;
+
+    // Attach click handlers
+    grid.querySelectorAll('.seat:not(.taken)').forEach((seatEl) => {
+        seatEl.addEventListener('click', () => selectSeat(seatEl));
+    });
+}
+
+function seatCell(num, takenSet, capacity) {
+    if (num > capacity) return '<div class="seat-aisle"></div>';
+
+    const numStr = String(num);
+    const isTaken = takenSet.has(numStr);
+    return `
+        <div class="seat ${isTaken ? 'taken' : ''}"
+             data-seat="${numStr}"
+             role="button"
+             tabindex="${isTaken ? -1 : 0}"
+             aria-label="Seat ${numStr} ${isTaken ? 'taken' : 'available'}">
+            ${num}
+        </div>
+    `;
+}
+
+/* =====================================================
+   SELECT SEAT
+===================================================== */
+function selectSeat(el) {
+    const seatNum = el.dataset.seat;
+
+    // If clicking the already-selected seat → deselect
+    if (selectedSeat === seatNum) {
+        el.classList.remove('selected');
+        selectedSeat = null;
+        updateConfirmBtn();
+        renderPanel();
+        return;
+    }
+
+    // Deselect previous
+    document.querySelectorAll('.seat.selected').forEach((s) => s.classList.remove('selected'));
+
+    // Select this one
+    el.classList.add('selected');
+    selectedSeat = seatNum;
+    updateConfirmBtn();
+    renderPanel();
+}
+
+function updateConfirmBtn() {
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = !selectedSeat;
+}
+
+/* =====================================================
+   RENDER BOOKING PANEL
+===================================================== */
+function renderPanel() {
+    const t = currentTrip;
+    if (!t) return;
+
+    document.getElementById('panelBus').textContent = t.bus?.busNumber || '—';
+    document.getElementById('panelRoute').textContent = t.route?.name || '—';
+    document.getElementById('panelDate').textContent = t.date
+        ? new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Today';
+    document.getElementById('panelDeparture').textContent = formatTime(t.departureTime);
+    document.getElementById('panelDirection').textContent = (t.direction || 'outbound');
+    document.getElementById('panelSeat').textContent = selectedSeat ? `Seat ${selectedSeat}` : 'None';
+    document.getElementById('panelFare').textContent = selectedSeat ? `৳ ${FARE}` : '৳ 0';
+}
+
+/* =====================================================
+   CONFIRM MODAL
+===================================================== */
+function openConfirmModal() {
+    if (!selectedSeat) return;
+
+    document.getElementById('confirmSeat').textContent = `Seat ${selectedSeat}`;
+    document.getElementById('confirmBus').textContent = currentTrip?.bus?.busNumber || 'the bus';
+    document.getElementById('confirmDate').textContent = currentTrip?.date
+        ? new Date(currentTrip.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+        : 'today';
+
+    document.getElementById('confirmModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+/* =====================================================
+   CREATE BOOKING
+===================================================== */
+async function createBooking() {
+    if (!selectedSeat) return;
+
+    const btn = document.getElementById('modalConfirmBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking...';
+
+    try {
+        const tripId = currentTrip._id;
+        const res = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                tripId,
+                seatNumber: selectedSeat,
+                pickupStop: currentTrip.route?.stops?.[0] || null,
+                dropoffStop: currentTrip.route?.stops?.[currentTrip.route.stops.length - 1] || null,
+            }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Booking failed');
+
+        closeConfirmModal();
+
+        // Show success modal
+        showSuccess(data.data);
+    } catch (err) {
+        // Check if seat was taken
+        if (err.message.toLowerCase().includes('seat') && err.message.toLowerCase().includes('book')) {
+            showToast('error', 'Seat just taken', 'Please choose another seat.');
+            // Refresh seats
+            await loadSeats(currentTrip._id);
+            selectedSeat = null;
+            updateConfirmBtn();
+            renderPanel();
+        } else {
+            showToast('error', 'Booking failed', err.message);
+        }
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+/* =====================================================
+   SUCCESS MODAL
+===================================================== */
+function showSuccess(booking) {
+    const t = currentTrip;
+    document.getElementById('successDetails').innerHTML = `
+        <div class="row"><span>Booking ID</span><strong>${escapeHtml(booking.bookingId || '—')}</strong></div>
+        <div class="row"><span>Bus</span><strong>${escapeHtml(t.bus?.busNumber || '')}</strong></div>
+        <div class="row"><span>Seat</span><strong>${escapeHtml(booking.seatNumber)}</strong></div>
+        <div class="row"><span>Date</span><strong>${t.date ? new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Today'}</strong></div>
+        <div class="row"><span>Departure</span><strong>${formatTime(t.departureTime)}</strong></div>
+    `;
+    document.getElementById('successModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+/* =====================================================
+   TOASTS
+===================================================== */
+function showToast(type, title, message = '') {
+    const container = document.getElementById('toastContainer');
+    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${icons[type]}"></i>
+        <div class="toast-content">
+            <h5>${escapeHtml(title)}</h5>
+            ${message ? `<p>${escapeHtml(message)}</p>` : ''}
+        </div>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+/* =====================================================
+   UTILITIES
+===================================================== */
+function formatTime(time) {
+    if (!time) return '--:--';
+    const [h, m] = time.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}

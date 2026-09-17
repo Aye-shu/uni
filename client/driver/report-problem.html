@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report Problem – UniBus Driver</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/driver/driver.css">
+    <link rel="stylesheet" href="/css/driver/driver-report.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/driver/dashboard.html" class="nav-item">
+            <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+        </a>
+        <a href="/driver/todays-trips.html" class="nav-item">
+            <i class="fas fa-list"></i><span>My Trips</span>
+        </a>
+        <a href="/driver/passenger-list.html" class="nav-item">
+            <i class="fas fa-users"></i><span>Passengers</span>
+        </a>
+        <a href="/driver/report-problem.html" class="nav-item active">
+            <i class="fas fa-exclamation-triangle"></i><span>Report Problem</span>
+        </a>
+        <a href="/driver/profile.html" class="nav-item">
+            <i class="fas fa-user"></i><span>Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <a href="/driver/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">D</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Driver</span>
+                    <span class="user-role" id="userRole">driver</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>Report a Problem</h1>
+            <p>Report delays, breakdowns, or other issues.</p>
+        </div>
+    </div>
+
+    <!-- ACTIVE TRIP BANNER -->
+    <div class="active-trip-banner" id="activeTripBanner">
+        <div class="trip-loading">
+            <i class="fas fa-spinner fa-spin"></i> Checking active trip...
+        </div>
+    </div>
+
+    <!-- QUICK REPORT BUTTONS -->
+    <div class="quick-reports" id="quickReports">
+        <button type="button" class="quick-btn traffic" data-quick="traffic">
+            <i class="fas fa-traffic-light"></i>
+            <span>Traffic</span>
+            <small>+10 min</small>
+        </button>
+        <button type="button" class="quick-btn breakdown" data-quick="breakdown">
+            <i class="fas fa-tools"></i>
+            <span>Breakdown</span>
+            <small>Report</small>
+        </button>
+        <button type="button" class="quick-btn accident" data-quick="accident">
+            <i class="fas fa-car-crash"></i>
+            <span>Accident</span>
+            <small>Urgent</small>
+        </button>
+    </div>
+
+    <!-- MAIN GRID: FORM + HISTORY -->
+    <div class="report-layout">
+
+        <!-- FORM -->
+        <div class="report-form-card">
+            <div class="card-header">
+                <h2><i class="fas fa-edit"></i> New Report</h2>
+            </div>
+            <form id="reportForm">
+                <div class="card-body">
+
+                    <!-- Issue Type -->
+                    <div class="form-section">
+                        <label class="section-label">
+                            What's the issue? <span class="req">*</span>
+                        </label>
+                        <div class="issue-grid" id="issueGrid">
+                            <button type="button" class="issue-btn" data-value="traffic">
+                                <div class="issue-icon traffic"><i class="fas fa-traffic-light"></i></div>
+                                <span>Traffic</span>
+                            </button>
+                            <button type="button" class="issue-btn" data-value="breakdown">
+                                <div class="issue-icon breakdown"><i class="fas fa-tools"></i></div>
+                                <span>Breakdown</span>
+                            </button>
+                            <button type="button" class="issue-btn" data-value="accident">
+                                <div class="issue-icon accident"><i class="fas fa-car-crash"></i></div>
+                                <span>Accident</span>
+                            </button>
+                            <button type="button" class="issue-btn" data-value="passenger">
+                                <div class="issue-icon passenger"><i class="fas fa-users"></i></div>
+                                <span>Passenger</span>
+                            </button>
+                            <button type="button" class="issue-btn" data-value="weather">
+                                <div class="issue-icon weather"><i class="fas fa-cloud-rain"></i></div>
+                                <span>Weather</span>
+                            </button>
+                            <button type="button" class="issue-btn" data-value="other">
+                                <div class="issue-icon other"><i class="fas fa-ellipsis-h"></i></div>
+                                <span>Other</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="issueType" />
+                        <span class="field-error" id="errIssueType"></span>
+                    </div>
+
+                    <!-- Severity -->
+                    <div class="form-section">
+                        <label class="section-label">
+                            Severity <span class="req">*</span>
+                        </label>
+                        <div class="severity-grid">
+                            <label class="severity-option">
+                                <input type="radio" name="severity" value="low" checked />
+                                <div class="severity-card low">
+                                    <i class="fas fa-circle"></i>
+                                    <div>
+                                        <strong>Low</strong>
+                                        <small>Minor delay</small>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="severity-option">
+                                <input type="radio" name="severity" value="medium" />
+                                <div class="severity-card medium">
+                                    <i class="fas fa-circle"></i>
+                                    <div>
+                                        <strong>Medium</strong>
+                                        <small>Noticeable delay</small>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="severity-option">
+                                <input type="radio" name="severity" value="high" />
+                                <div class="severity-card high">
+                                    <i class="fas fa-circle"></i>
+                                    <div>
+                                        <strong>High</strong>
+                                        <small>Trip cannot continue</small>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-section">
+                        <label class="section-label" for="description">
+                            Description <span class="optional">(optional)</span>
+                        </label>
+                        <textarea id="description" rows="3" placeholder="Add more details about the issue..."></textarea>
+                    </div>
+
+                    <!-- Estimated Delay -->
+                    <div class="form-section">
+                        <label class="section-label" for="estimatedDelay">
+                            Estimated Delay <span class="optional">(optional)</span>
+                        </label>
+                        <select id="estimatedDelay">
+                            <option value="0">No delay</option>
+                            <option value="5">5 minutes</option>
+                            <option value="10" selected>10 minutes</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour or more</option>
+                        </select>
+                    </div>
+
+                    <!-- Notify Students -->
+                    <div class="form-section">
+                        <label class="notify-toggle">
+                            <input type="checkbox" id="notifyStudents" checked />
+                            <div class="toggle-track">
+                                <div class="toggle-thumb"></div>
+                            </div>
+                            <div class="toggle-text">
+                                <strong>Notify students</strong>
+                                <small>Send an alert to students tracking this bus</small>
+                            </div>
+                        </label>
+                    </div>
+
+                </div>
+
+                <div class="card-actions">
+                    <button type="button" class="btn-cancel" id="cancelBtn">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> Submit Report
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="history-card">
+            <div class="card-header">
+                <h2><i class="fas fa-history"></i> Recent Reports</h2>
+                <select id="historyFilter">
+                    <option value="all">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+            <div class="card-body p-0" id="historyList">
+                <div class="history-loading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============ CONFIRMATION MODAL ============ -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-check-circle"></i> Submit Report?</h2>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-summary" id="confirmSummary">
+                <!-- Filled by JS -->
+            </div>
+            <p class="modal-hint" id="confirmHint">
+                This report will be sent to the admin.
+            </p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelConfirmBtn">Cancel</button>
+            <button type="button" class="btn-submit" id="confirmSubmitBtn">
+                <i class="fas fa-paper-plane"></i> Yes, Submit
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ SUCCESS MODAL ============ -->
+<div class="modal-overlay" id="successModal">
+    <div class="modal-box modal-sm">
+        <div class="success-content">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2>Report Submitted!</h2>
+            <p id="successMessage">Your report has been sent to the admin.</p>
+            <button type="button" class="btn-primary-cta" id="successCloseBtn">
+                <i class="fas fa-check"></i> Got It
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/driver/report.js"></script>
+</body>
+</html>

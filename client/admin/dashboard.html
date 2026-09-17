@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard – UniBus</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin/admin.css">
+</head>
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+============================================================ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="/admin/dashboard.html" class="nav-item active">
+            <i class="fas fa-th-large"></i><span>Dashboard</span>
+        </a>
+        <a href="/admin/buses.html" class="nav-item">
+            <i class="fas fa-bus"></i><span>Manage Buses</span>
+        </a>
+        <a href="/admin/routes.html" class="nav-item">
+            <i class="fas fa-route"></i><span>Manage Routes</span>
+        </a>
+        <a href="/admin/drivers.html" class="nav-item">
+            <i class="fas fa-id-card"></i><span>Manage Drivers</span>
+        </a>
+        <a href="/admin/schedules.html" class="nav-item">
+            <i class="fas fa-calendar-alt"></i><span>Schedules</span>
+        </a>
+        <a href="/admin/live-buses.html" class="nav-item">
+            <i class="fas fa-map-marked-alt"></i><span>Live Monitoring</span>
+        </a>
+        <a href="/admin/reports.html" class="nav-item">
+            <i class="fas fa-chart-line"></i><span>Reports</span>
+        </a>
+        <a href="/admin/users.html" class="nav-item">
+            <i class="fas fa-users"></i><span>Users</span>
+        </a>
+        <a href="/admin/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </button>
+    </div>
+</aside>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<div class="main-content" id="mainContent">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="topbar-right">
+            <a href="/admin/notifications.html" class="icon-btn" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notifBadge">0</span>
+            </a>
+
+            <a href="/admin/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">admin</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- DASHBOARD CONTENT -->
+    <main class="dashboard-content">
+
+        <!-- WELCOME BANNER -->
+        <div class="welcome-card">
+            <div class="welcome-text">
+                <h1>Welcome back, <span id="welcomeName">Admin</span>! 🛠️</h1>
+                <p id="welcomeSummary">Loading system status...</p>
+                <span class="welcome-date" id="welcomeDate"></span>
+            </div>
+            <div class="welcome-illustration">🚌</div>
+        </div>
+
+        <!-- STATS ROW -->
+        <div class="stats-row">
+            <a href="/admin/buses.html" class="stat-card">
+                <div class="stat-icon orange"><i class="fas fa-bus"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBuses">0</h3>
+                    <p>Total Buses</p>
+                </div>
+            </a>
+            <a href="/admin/drivers.html" class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-id-card"></i></div>
+                <div class="stat-info">
+                    <h3 id="statDrivers">0</h3>
+                    <p>Total Drivers</p>
+                </div>
+            </a>
+            <a href="/admin/users.html" class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-info">
+                    <h3 id="statStudents">0</h3>
+                    <p>Registered Students</p>
+                </div>
+            </a>
+            <a href="/admin/live-buses.html" class="stat-card">
+                <div class="stat-icon red"><i class="fas fa-satellite-dish"></i></div>
+                <div class="stat-info">
+                    <h3 id="statLive">0</h3>
+                    <p>Active Trips</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="stats-row stats-row-3">
+            <a href="/admin/reports.html" class="stat-card">
+                <div class="stat-icon orange"><i class="fas fa-ticket-alt"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBookings">0</h3>
+                    <p>Today's Bookings</p>
+                </div>
+            </a>
+            <a href="/admin/reports.html" class="stat-card">
+                <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-info">
+                    <h3 id="statReports">0</h3>
+                    <p>Reported Issues</p>
+                </div>
+            </a>
+            <a href="/admin/routes.html" class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-route"></i></div>
+                <div class="stat-info">
+                    <h3 id="statRoutes">0</h3>
+                    <p>Total Routes</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="dashboard-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="grid-left">
+
+                <!-- Fleet Map -->
+                <div class="content-card map-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-map-marked-alt"></i> Live Fleet Overview</h2>
+                        <a href="/admin/live-buses.html" class="card-link">Full Monitoring <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="fleetMap" class="fleet-map"></div>
+                        <div class="map-status">
+                            <span class="status-dot" id="mapStatusDot"></span>
+                            <span id="mapStatusText">Loading live buses...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fleet Status Table -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-list"></i> Fleet Status</h2>
+                        <a href="/admin/buses.html" class="card-link">Manage Buses <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="fleetTable">
+                            <div class="loading-skeleton" style="padding: 20px;">
+                                <div class="skeleton-line"></div>
+                                <div class="skeleton-line"></div>
+                                <div class="skeleton-line"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="grid-right">
+
+                <!-- Quick Actions -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-actions">
+                            <a href="/admin/add-bus.html" class="quick-action">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Add Bus</span>
+                            </a>
+                            <a href="/admin/add-driver.html" class="quick-action">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Add Driver</span>
+                            </a>
+                            <a href="/admin/add-route.html" class="quick-action">
+                                <i class="fas fa-route"></i>
+                                <span>Add Route</span>
+                            </a>
+                            <a href="/admin/schedules.html" class="quick-action">
+                                <i class="fas fa-calendar-plus"></i>
+                                <span>Schedule</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Alerts -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-bell"></i> Recent Alerts</h2>
+                    </div>
+                    <div class="card-body" id="alertsList">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/admin/dashboard.js"></script>
+</body>
+</html>

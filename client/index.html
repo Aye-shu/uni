@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+        content="UniBus - Smart university transportation management system">
+
+    <title>UniBus | Smart University Transportation</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Main CSS (root-relative) -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="site-header">
+
+        <div class="container nav-container">
+
+            <!-- Logo -->
+            <a href="./index.html" class="logo">
+
+                <div class="logo-icon">
+                    🚌
+                </div>
+
+                <div class="logo-text">
+                    Uni<span>Bus</span>
+                </div>
+
+            </a>
+
+
+            <!-- Desktop Navigation -->
+
+            <nav class="navbar" id="navbar">
+
+                <a href="#home" class="active">
+                    Home
+                </a>
+
+                <a href="#services">
+                    Services
+                </a>
+
+                <a href="#buses">
+                    Bus Schedule
+                </a>
+
+                <a href="#how-it-works">
+                    How It Works
+                </a>
+
+                <a href="#about">
+                    About
+                </a>
+
+            </nav>
+
+
+            <!-- Header buttons -->
+
+            <div class="nav-buttons">
+
+                <a href="/login.html"
+                    class="btn btn-outline">
+                    Login
+                </a>
+
+                <a href="/signup.html"
+                    class="btn btn-orange">
+                    Sign Up
+                </a>
+
+            </div>
+
+
+            <!-- Mobile Menu Button -->
+
+            <button
+                class="mobile-menu"
+                id="mobileMenu">
+
+                ☰
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =====================================================
+         HERO SECTION
+    ====================================================== -->
+
+    <section class="hero" id="home">
+
+        <div class="hero-overlay"></div>
+
+        <div class="container hero-container">
+
+
+            <!-- Hero Text -->
+
+            <div class="hero-content">
+
+                <div class="hero-small-title">
+
+                    SMART UNIVERSITY TRANSPORTATION
+
+                </div>
+
+
+                <h1>
+
+                    YOUR CLASS SCHEDULE.
+                    <br>
+
+                    <span>
+                        YOUR BUS. YOUR SEAT.
+                    </span>
+
+                </h1>
+
+
+                <p>
+
+                    Find the right university bus for your class,
+                    reserve your preferred seat, book your return
+                    trip, and track your bus in real time.
+
+                </p>
+
+
+                <div class="hero-buttons">
+
+                    <a href="#find-bus"
+                        class="btn btn-orange btn-large">
+
+                        Find a Bus
+
+                        <span>
+                            →
+                        </span>
+
+                    </a>
+
+
+                    <a href="./login.html"
+                        class="btn btn-glass btn-large">
+
+                        Track My Bus
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 SEARCH / BOOKING CARD
+            ================================================== -->
+
+            <div class="booking-card"
+                id="find-bus">
+
+                <div class="booking-header">
+
+                    <span>
+                        UNIBUS
+                    </span>
+
+                    <h2>
+                        FIND YOUR BUS
+                    </h2>
+
+                    <p>
+                        Search for a trip that fits your
+                        class schedule.
+                    </p>
+
+                </div>
+
+
+                <form id="busSearchForm">
+
+
+                    <!-- Pickup -->
+
+                    <div class="form-group">
+
+                        <label for="pickup">
+                            PICK-UP LOCATION
+                        </label>
+
+                        <div class="input-box">
+
+                            <span class="field-icon">
+                                📍
+                            </span>
+
+                            <select id="pickup"
+                                required>
+
+                                <option value="">
+                                    Select pickup point
+                                </option>
+
+                                <option>
+                                    Mirpur 1
+                                </option>
+
+                                <option>
+                                    Mirpur 10
+                                </option>
+
+                                <option>
+                                    Kazipara
+                                </option>
+
+                                <option>
+                                    Farmgate
+                                </option>
+
+                                <option>
+                                    Uttara
+                                </option>
+
+                                <option>
+                                    Dhanmondi
+                                </option>
+
+                                <option>
+                                    Mohammadpur
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Destination -->
+
+                    <div class="form-group">
+
+                        <label for="destination">
+                            DESTINATION
+                        </label>
+
+                        <div class="input-box">
+
+                            <span class="field-icon">
+                                📍
+                            </span>
+
+                            <select id="destination"
+                                required>
+
+                                <option value="">
+                                    Select destination
+                                </option>
+
+                                <option>
+                                    University Campus
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Date -->
+
+                    <div class="form-group">
+
+                        <label for="travelDate">
+                            TRAVEL DATE
+                        </label>
+
+                        <div class="input-box">
+
+                            <span class="field-icon">
+                                📅
+                            </span>
+
+                            <input
+                                type="date"
+                                id="travelDate"
+                                required>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Class Time -->
+
+                    <div class="form-group">
+
+                        <label for="classTime">
+                            YOUR CLASS TIME
+                        </label>
+
+                        <div class="input-box">
+
+                            <span class="field-icon">
+                                ⏰
+                            </span>
+
+                            <select id="classTime"
+                                required>
+
+                                <option value="">
+                                    Select class time
+                                </option>
+
+                                <option>
+                                    10:00 AM
+                                </option>
+
+                                <option>
+                                    11:30 AM
+                                </option>
+
+                                <option>
+                                    1:30 PM
+                                </option>
+
+                                <option>
+                                    3:00 PM
+                                </option>
+
+                                <option>
+                                    4:30 PM
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Trip type -->
+
+                    <div class="form-group full-width">
+
+                        <label>
+                            TRIP TYPE
+                        </label>
+
+
+                        <div class="trip-options">
+
+
+                            <label class="trip-option">
+
+                                <input
+                                    type="radio"
+                                    name="tripType"
+                                    value="outbound"
+                                    checked>
+
+                                <span>
+                                    Home → University
+                                </span>
+
+                            </label>
+
+
+
+                            <label class="trip-option">
+
+                                <input
+                                    type="radio"
+                                    name="tripType"
+                                    value="return">
+
+                                <span>
+                                    University → Home
+                                </span>
+
+                            </label>
+
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Search -->
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary btn-full">
+
+                        SEARCH AVAILABLE BUSES
+
+                    </button>
+
+
+                    <p class="form-message"
+                        id="formMessage">
+
+                        Smart recommendations are based
+                        on your class time.
+
+                    </p>
+
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         STATISTICS
+    ====================================================== -->
+
+    <section class="stats">
+
+        <div class="container stats-container">
+
+
+            <div class="stat">
+
+                <h3>
+                    Multiple
+                </h3>
+
+                <p>
+                    Daily Trips
+                </p>
+
+            </div>
+
+
+            <div class="stat">
+
+                <h3>
+                    40+
+                </h3>
+
+                <p>
+                    Seats Per Bus
+                </p>
+
+            </div>
+
+
+            <div class="stat">
+
+                <h3>
+                    LIVE
+                </h3>
+
+                <p>
+                    GPS Tracking
+                </p>
+
+            </div>
+
+
+            <div class="stat">
+
+                <h3>
+                    24/7
+                </h3>
+
+                <p>
+                    Booking Access
+                </p>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SERVICES
+    ====================================================== -->
+
+    <section class="section services"
+        id="services">
+
+        <div class="container">
+
+
+            <div class="section-heading">
+
+                <span>
+                    WHAT WE OFFER
+                </span>
+
+                <h2>
+                    TRANSPORTATION
+                    <br>
+                    DESIGNED FOR STUDENTS
+                </h2>
+
+                <p>
+
+                    UniBus connects your academic schedule
+                    with convenient university transportation.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="services-grid">
+
+
+                <!-- Service 1 -->
+
+                <article class="service-card">
+
+                    <div class="service-icon">
+                        📚
+                    </div>
+
+                    <h3>
+                        CLASS-BASED TRIPS
+                    </h3>
+
+                    <p>
+
+                        Find bus trips that fit your
+                        actual class schedule.
+
+                    </p>
+
+                    <a href="./login.html">
+                        Explore Service →
+                    </a>
+
+                </article>
+
+
+
+                <!-- Service 2 -->
+
+                <article class="service-card featured-service">
+
+                    <div class="service-icon">
+                        ⭐
+                    </div>
+
+                    <h3>
+                        SMART RECOMMENDATION
+                    </h3>
+
+                    <p>
+
+                        Get recommended buses based
+                        on your class start time.
+
+                    </p>
+
+                    <a href="./login.html">
+                        Explore Service →
+                    </a>
+
+                </article>
+
+
+
+                <!-- Service 3 -->
+
+                <article class="service-card">
+
+                    <div class="service-icon">
+                        💺
+                    </div>
+
+                    <h3>
+                        SEAT RESERVATION
+                    </h3>
+
+                    <p>
+
+                        View the seat map and reserve
+                        your preferred available seat.
+
+                    </p>
+
+                    <a href="./login.html">
+                        Explore Service →
+                    </a>
+
+                </article>
+
+
+
+                <!-- Service 4 -->
+
+                <article class="service-card">
+
+                    <div class="service-icon">
+                        📍
+                    </div>
+
+                    <h3>
+                        LIVE BUS TRACKING
+                    </h3>
+
+                    <p>
+
+                        Track your bus location and
+                        estimated arrival time.
+
+                    </p>
+
+                    <a href="./login.html">
+                        Explore Service →
+                    </a>
+
+                </article>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         BUS SECTION
+    ====================================================== -->
+
+    <section class="section buses"
+        id="buses">
+
+        <div class="container">
+
+
+            <div class="section-top">
+
+                <div>
+
+                    <span>
+                        TODAY'S OPTIONS
+                    </span>
+
+                    <h2>
+                        CHOOSE YOUR BUS
+                    </h2>
+
+                </div>
+
+
+                <a href="./login.html"
+                    class="view-all">
+
+                    View Full Schedule →
+
+                </a>
+
+            </div>
+
+
+
+            <div class="bus-grid">
+
+
+                <!-- BUS 1 -->
+
+                <article class="bus-card">
+
+                    <div class="bus-image bus-image-1">
+
+                        <span class="availability">
+                            14 Seats Left
+                        </span>
+
+                        <strong>
+                            UB-01
+                        </strong>
+
+                    </div>
+
+
+                    <div class="bus-content">
+
+                        <div class="bus-route">
+
+                            <span>
+                                Mirpur
+                            </span>
+
+                            <b>
+                                →
+                            </b>
+
+                            <strong>
+                                University
+                            </strong>
+
+                        </div>
+
+
+                        <div class="bus-time">
+
+                            <div>
+
+                                <small>
+                                    DEPARTURE
+                                </small>
+
+                                <strong>
+                                    8:30 AM
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <small>
+                                    ARRIVAL
+                                </small>
+
+                                <strong>
+                                    9:30 AM
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="bus-bottom">
+
+                            <span>
+                                40 seats
+                            </span>
+
+                            <a href="./login.html">
+                                Book Seat
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+
+                <!-- BUS 2 -->
+
+                <article class="bus-card highlighted-bus">
+
+                    <div class="bus-image bus-image-2">
+
+                        <span class="recommended">
+                            ★ Recommended
+                        </span>
+
+                        <strong>
+                            UB-04
+                        </strong>
+
+                    </div>
+
+
+                    <div class="bus-content">
+
+                        <div class="bus-route">
+
+                            <span>
+                                Mirpur
+                            </span>
+
+                            <b>
+                                →
+                            </b>
+
+                            <strong>
+                                University
+                            </strong>
+
+                        </div>
+
+
+                        <div class="bus-time">
+
+                            <div>
+
+                                <small>
+                                    DEPARTURE
+                                </small>
+
+                                <strong>
+                                    11:45 AM
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <small>
+                                    ARRIVAL
+                                </small>
+
+                                <strong>
+                                    12:45 PM
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="bus-bottom">
+
+                            <span>
+                                14 seats left
+                            </span>
+
+                            <a href="./login.html">
+                                Book Seat
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+
+                <!-- BUS 3 -->
+
+                <article class="bus-card">
+
+                    <div class="bus-image bus-image-3">
+
+                        <span class="availability">
+                            8 Seats Left
+                        </span>
+
+                        <strong>
+                            UB-07
+                        </strong>
+
+                    </div>
+
+
+                    <div class="bus-content">
+
+                        <div class="bus-route">
+
+                            <span>
+                                University
+                            </span>
+
+                            <b>
+                                →
+                            </b>
+
+                            <strong>
+                                Uttara
+                            </strong>
+
+                        </div>
+
+
+                        <div class="bus-time">
+
+                            <div>
+
+                                <small>
+                                    DEPARTURE
+                                </small>
+
+                                <strong>
+                                    4:30 PM
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <small>
+                                    ARRIVAL
+                                </small>
+
+                                <strong>
+                                    5:30 PM
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="bus-bottom">
+
+                            <span>
+                                32 seats
+                            </span>
+
+                            <a href="./login.html">
+                                Book Seat
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+
+                <!-- BUS 4 -->
+
+                <article class="bus-card">
+
+                    <div class="bus-image bus-image-4">
+
+                        <span class="availability">
+                            22 Seats Left
+                        </span>
+
+                        <strong>
+                            UB-09
+                        </strong>
+
+                    </div>
+
+
+                    <div class="bus-content">
+
+                        <div class="bus-route">
+
+                            <span>
+                                University
+                            </span>
+
+                            <b>
+                                →
+                            </b>
+
+                            <strong>
+                                Mirpur
+                            </strong>
+
+                        </div>
+
+
+                        <div class="bus-time">
+
+                            <div>
+
+                                <small>
+                                    DEPARTURE
+                                </small>
+
+                                <strong>
+                                    5:45 PM
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <small>
+                                    ARRIVAL
+                                </small>
+
+                                <strong>
+                                    6:45 PM
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="bus-bottom">
+
+                            <span>
+                                22 seats left
+                            </span>
+
+                            <a href="./login.html">
+                                Book Seat
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SMART RECOMMENDATION
+    ====================================================== -->
+
+    <section class="section recommendation">
+
+        <div class="container recommendation-grid">
+
+
+            <div class="recommendation-content">
+
+                <span>
+                    SMART TRAVEL
+                </span>
+
+                <h2>
+
+                    YOUR CLASS
+                    <br>
+                    SHOULD NOT HAVE
+                    <br>
+                    TO FIT THE BUS.
+
+                </h2>
+
+
+                <p>
+
+                    Add your weekly classes once.
+                    UniBus can then recommend suitable
+                    transportation for different class
+                    start and end times.
+
+                </p>
+
+
+                <div class="recommendation-list">
+
+                    <div>
+                        ✓ Detect your next class time
+                    </div>
+
+                    <div>
+                        ✓ Compare suitable bus trips
+                    </div>
+
+                    <div>
+                        ✓ Show available seats
+                    </div>
+
+                    <div>
+                        ✓ Suggest your return trip
+                    </div>
+
+                </div>
+
+
+                <a href="./signup.html"
+                    class="btn btn-primary btn-large">
+
+                    Create Student Account
+
+                </a>
+
+            </div>
+
+
+
+            <!-- Recommendation Card -->
+
+            <div class="recommendation-card">
+
+
+                <div class="class-header">
+
+                    <div>
+
+                        <small>
+                            YOUR NEXT CLASS
+                        </small>
+
+                        <h3>
+                            Operating System
+                        </h3>
+
+                    </div>
+
+
+                    <div class="class-time">
+
+                        1:30 PM
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="best-match">
+
+                    <span class="match-label">
+                        ★ BEST MATCH
+                    </span>
+
+
+                    <div class="match-title">
+
+                        <div>
+
+                            <small>
+                                RECOMMENDED BUS
+                            </small>
+
+                            <h3>
+                                UB-04 · Mirpur →
+                                University
+                            </h3>
+
+                        </div>
+
+
+                        <div class="departure">
+
+                            <strong>
+                                11:45 AM
+                            </strong>
+
+                            <small>
+                                Departure
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="match-info">
+
+                        <span>
+                            Arrives 12:45 PM
+                        </span>
+
+                        <span>
+                            14 Seats
+                        </span>
+
+                        <span>
+                            45 Min Before Class
+                        </span>
+
+                    </div>
+
+
+                    <a href="./login.html"
+                        class="btn btn-orange btn-full">
+
+                        View Recommended Trip
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         RETURN BUS
+    ====================================================== -->
+
+    <section class="return-section">
+
+        <div class="container return-grid">
+
+
+            <div class="return-image">
+
+                <div class="return-info">
+
+                    <small>
+                        LAST CLASS
+                    </small>
+
+                    <strong>
+                        5:30 PM
+                    </strong>
+
+                    <span>
+                        Find your ride home
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="return-content">
+
+                <span>
+                    GO HOME WHEN YOUR CLASS ENDS
+                </span>
+
+                <h2>
+
+                    FLEXIBLE RETURN
+                    <br>
+                    TRIPS FOR YOUR
+                    <br>
+                    REAL SCHEDULE.
+
+                </h2>
+
+
+                <p>
+
+                    Don't wait for one fixed evening bus.
+                    Select a return trip that works after
+                    your final class and reserve your
+                    preferred seat.
+
+                </p>
+
+
+                <div class="return-options">
+
+
+                    <div>
+
+                        <strong>
+                            5:45 PM
+                        </strong>
+
+                        <span>
+                            15 seats
+                        </span>
+
+                    </div>
+
+
+                    <div class="active-return">
+
+                        <strong>
+                            6:00 PM
+                        </strong>
+
+                        <span>
+                            24 seats
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <strong>
+                            6:30 PM
+                        </strong>
+
+                        <span>
+                            12 seats
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+                <a href="/login.html"
+                    class="btn btn-primary btn-large">
+
+                    Find My Return Bus
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         HOW IT WORKS
+    ====================================================== -->
+
+    <section class="section workflow"
+        id="how-it-works">
+
+        <div class="container">
+
+
+            <div class="section-heading centered">
+
+                <span>
+                    SIMPLE PROCESS
+                </span>
+
+                <h2>
+                    HOW UNIBUS WORKS
+                </h2>
+
+                <p>
+                    Four simple steps from your class
+                    schedule to a comfortable bus ride.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-grid">
+
+
+                <article class="workflow-card">
+
+                    <div class="number">
+                        01
+                    </div>
+
+                    <div class="workflow-icon">
+                        📚
+                    </div>
+
+                    <h3>
+                        ADD YOUR CLASSES
+                    </h3>
+
+                    <p>
+
+                        Add your weekly class schedule
+                        so UniBus understands your
+                        transportation needs.
+
+                    </p>
+
+                </article>
+
+
+
+                <article class="workflow-card">
+
+                    <div class="number">
+                        02
+                    </div>
+
+                    <div class="workflow-icon">
+                        🔎
+                    </div>
+
+                    <h3>
+                        FIND YOUR BUS
+                    </h3>
+
+                    <p>
+
+                        Search routes and receive a
+                        recommended trip based on
+                        your class time.
+
+                    </p>
+
+                </article>
+
+
+
+                <article class="workflow-card">
+
+                    <div class="number">
+                        03
+                    </div>
+
+                    <div class="workflow-icon">
+                        💺
+                    </div>
+
+                    <h3>
+                        CHOOSE YOUR SEAT
+                    </h3>
+
+                    <p>
+
+                        View the visual seat map and
+                        select an available seat.
+
+                    </p>
+
+                </article>
+
+
+
+                <article class="workflow-card">
+
+                    <div class="number">
+                        04
+                    </div>
+
+                    <div class="workflow-icon">
+                        📍
+                    </div>
+
+                    <h3>
+                        TRACK & RIDE
+                    </h3>
+
+                    <p>
+
+                        Track your bus, receive updates,
+                        and ride home after class.
+
+                    </p>
+
+                </article>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         LIVE TRACKING
+    ====================================================== -->
+
+    <section class="tracking">
+
+        <div class="container tracking-grid">
+
+
+            <!-- Fake map -->
+
+            <div class="map-container">
+
+                <div class="map-background"></div>
+
+                <div class="map-road road-one"></div>
+
+                <div class="map-road road-two"></div>
+
+                <div class="map-location location-one">
+                    📍
+                </div>
+
+                <div class="map-location location-two">
+                    📍
+                </div>
+
+                <div class="bus-marker">
+                    🚌
+                </div>
+
+                <div class="map-label label-one">
+                    Mirpur 10
+                </div>
+
+                <div class="map-label label-two">
+                    University
+                </div>
+
+                <div class="live-badge">
+
+                    <span></span>
+
+                    LIVE GPS
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Tracking text -->
+
+            <div class="tracking-content">
+
+                <span>
+                    REAL-TIME TRACKING
+                </span>
+
+                <h2>
+
+                    KNOW WHERE
+                    <br>
+                    YOUR BUS IS
+                    <br>
+                    BEFORE YOU
+                    <br>
+                    LEAVE.
+
+                </h2>
+
+
+                <p>
+
+                    Drivers can start a trip from their
+                    dashboard and broadcast GPS coordinates.
+                    Students can then see their booked bus
+                    moving on a live map.
+
+                </p>
+
+
+                <div class="tracking-details">
+
+
+                    <div>
+
+                        <div class="tracking-icon">
+                            🚌
+                        </div>
+
+                        <div>
+
+                            <small>
+                                BUS
+                            </small>
+
+                            <strong>
+                                UB-04
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div>
+
+                        <div class="tracking-icon">
+                            📍
+                        </div>
+
+                        <div>
+
+                            <small>
+                                CURRENT LOCATION
+                            </small>
+
+                            <strong>
+                                Kazipara
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div>
+
+                        <div class="tracking-icon">
+                            ⏱
+                        </div>
+
+                        <div>
+
+                            <small>
+                                ETA
+                            </small>
+
+                            <strong>
+                                12 Minutes
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+                <a href="/login.html"
+                    class="btn btn-orange btn-large">
+
+                    Track a Bus
+
+                </a>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TESTIMONIALS
+    ====================================================== -->
+
+    <section class="section testimonials">
+
+        <div class="container">
+
+
+            <div class="section-heading centered">
+
+                <span>
+                    STUDENT EXPERIENCE
+                </span>
+
+                <h2>
+                    MADE FOR EVERYDAY
+                    <br>
+                    UNIVERSITY TRAVEL
+                </h2>
+
+            </div>
+
+
+
+            <div class="testimonial-grid">
+
+
+                <article class="testimonial">
+
+                    <div class="quote">
+                        “
+                    </div>
+
+                    <p>
+
+                        I have different classes every day.
+                        Being able to choose a bus around
+                        my actual schedule would make
+                        university travel much easier.
+
+                    </p>
+
+
+                    <div class="student">
+
+                        <div class="student-avatar">
+                            A
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Ayesha
+                            </strong>
+
+                            <span>
+                                CSE Student
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+
+                <article class="testimonial">
+
+                    <div class="quote">
+                        “
+                    </div>
+
+                    <p>
+
+                        The seat selection and live tracking
+                        make the whole process much more
+                        organized than waiting for a fixed bus.
+
+                    </p>
+
+
+                    <div class="student">
+
+                        <div class="student-avatar">
+                            R
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Rabbiul
+                            </strong>
+
+                            <span>
+                                University Student
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+
+                <article class="testimonial">
+
+                    <div class="quote">
+                        “
+                    </div>
+
+                    <p>
+
+                        A flexible return trip is especially
+                        useful when my last class ends
+                        earlier than the regular evening bus.
+
+                    </p>
+
+
+                    <div class="student">
+
+                        <div class="student-avatar">
+                            T
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Tanim
+                            </strong>
+
+                            <span>
+                                University Student
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         ABOUT
+    ====================================================== -->
+
+    <section class="section about"
+        id="about">
+
+        <div class="container about-grid">
+
+
+            <div class="about-image">
+
+                <div class="about-badge">
+
+                    <strong>
+                        01
+                    </strong>
+
+                    <span>
+                        Student-first
+                        <br>
+                        transportation
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="about-content">
+
+                <span>
+                    ABOUT UNIBUS
+                </span>
+
+                <h2>
+
+                    A SMARTER WAY
+                    <br>
+                    TO CONNECT
+                    <br>
+                    STUDENTS WITH
+                    <br>
+                    TRANSPORTATION.
+
+                </h2>
+
+
+                <p>
+
+                    UniBus is designed around a simple
+                    problem: open-credit students do not
+                    all follow the same class schedule, but
+                    traditional university transportation
+                    often does.
+
+                </p>
+
+
+                <p>
+
+                    Our goal is to bring bus search,
+                    seat reservation, return booking,
+                    and live tracking into one platform.
+
+                </p>
+
+
+                <div class="about-list">
+
+                    <div>
+                        ✓ Flexible bus scheduling
+                    </div>
+
+                    <div>
+                        ✓ Seat-aware booking
+                    </div>
+
+                    <div>
+                        ✓ Secure user accounts
+                    </div>
+
+                    <div>
+                        ✓ Real-time communication
+                    </div>
+
+                </div>
+
+
+                <a href="signup.html"
+                    class="btn btn-primary btn-large">
+
+                    Join UniBus
+
+                </a>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FINAL CTA
+    ====================================================== -->
+
+    <section class="final-cta">
+
+        <div class="container cta-container">
+
+            <div>
+
+                <span>
+                    START YOUR JOURNEY
+                </span>
+
+                <h2>
+
+                    MAKE YOUR BUS
+                    <br>
+                    FIT YOUR
+                    <br>
+                    UNIVERSITY DAY.
+
+                </h2>
+
+            </div>
+
+
+            <div class="cta-buttons">
+
+                <a href="/signup.html"
+                    class="btn btn-white btn-large">
+
+                    Create Account
+
+                </a>
+
+                <a href="/login.html"
+                    class="btn btn-glass btn-large">
+
+                    Login
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <footer class="footer">
+
+        <div class="container footer-grid">
+
+
+            <!-- Brand -->
+
+            <div class="footer-brand">
+
+                <a href="#home"
+                    class="logo">
+
+                    <div class="logo-icon">
+                        🚌
+                    </div>
+
+                    <div class="logo-text">
+                        Uni<span>Bus</span>
+                    </div>
+
+                </a>
+
+
+                <p>
+
+                    Smart university transportation for
+                    students, drivers, and university
+                    transport teams.
+
+                </p>
+
+
+                <div class="social-icons">
+
+                    <a href="#">
+                        f
+                    </a>
+
+                    <a href="#">
+                        ◎
+                    </a>
+
+                    <a href="#">
+                        in
+                    </a>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Quick links -->
+
+            <div class="footer-column">
+
+                <h4>
+                    QUICK LINKS
+                </h4>
+
+                <a href="#home">
+                    Home
+                </a>
+
+                <a href="#services">
+                    Services
+                </a>
+
+                <a href="#buses">
+                    Bus Schedule
+                </a>
+
+                <a href="#how-it-works">
+                    How It Works
+                </a>
+
+            </div>
+
+
+
+            <!-- Student -->
+
+            <div class="footer-column">
+
+                <h4>
+                    STUDENT
+                </h4>
+
+                <a href="/login.html">
+                    Dashboard
+                </a>
+
+                <a href="/student/bookings.html">
+                    My Bookings
+                </a>
+
+                <a href="/login.html">
+                    Track Bus
+                </a>
+
+                <a href="/signup.html">
+                    Sign Up
+                </a>
+
+            </div>
+
+
+
+            <!-- Support -->
+
+            <div class="footer-column">
+
+                <h4>
+                    SUPPORT
+                </h4>
+
+                <a href="#">
+                    FAQ
+                </a>
+
+                <a href="#">
+                    Contact
+                </a>
+
+                <a href="#">
+                    Transport Rules
+                </a>
+
+                <a href="#">
+                    Privacy Policy
+                </a>
+
+            </div>
+
+
+
+            <!-- Contact -->
+
+            <div class="footer-column">
+
+                <h4>
+                    CONTACT
+                </h4>
+
+                <p>
+                    📍 University Transport Office
+                </p>
+
+                <p>
+                    ☎ +880 1XXXXXXXXX
+                </p>
+
+                <p>
+                    ✉ support@unibus.edu
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+
+        <div class="footer-bottom">
+
+            <div class="container footer-bottom-inner">
+
+                <span>
+                    © 2026 UniBus Management System.
+                    All rights reserved.
+                </span>
+
+                <span>
+                    Designed for university transportation.
+                </span>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+
+    <!-- JavaScript (root-relative) -->
+    <script src="main.js"></script>
+
+</body>
+
+</html>
