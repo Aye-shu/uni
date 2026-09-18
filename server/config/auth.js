@@ -113,6 +113,12 @@ export const initAuth = async () => {
       updateAge: 60 * 60 * 24,
     },
 
+    advanced: {
+      ipAddress: {
+        trustedProxies: ["0.0.0.0/0"],
+      },
+    },
+
     // ----- Additional User Fields -----
     user: {
       additionalFields: {
