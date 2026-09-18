@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile – UniBus Driver</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/driver/driver.css">
+    <link rel="stylesheet" href="/css/driver/driver-profile.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/driver/dashboard.html" class="nav-item">
+            <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+        </a>
+        <a href="/driver/todays-trips.html" class="nav-item">
+            <i class="fas fa-list"></i><span>My Trips</span>
+        </a>
+        <a href="/driver/passenger-list.html" class="nav-item">
+            <i class="fas fa-users"></i><span>Passengers</span>
+        </a>
+        <a href="/driver/report-problem.html" class="nav-item">
+            <i class="fas fa-exclamation-triangle"></i><span>Report Problem</span>
+        </a>
+        <a href="/driver/profile.html" class="nav-item active">
+            <i class="fas fa-user"></i><span>Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <a href="/driver/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">D</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Driver</span>
+                    <span class="user-role" id="userRole">driver</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>My Profile</h1>
+            <p>View and manage your driver account.</p>
+        </div>
+    </div>
+
+    <!-- PROFILE HEADER CARD -->
+    <div class="profile-header-card">
+        <div class="profile-avatar" id="profileAvatar">--</div>
+        <div class="profile-header-info">
+            <h2 id="headerName">Loading...</h2>
+            <div class="profile-meta">
+                <span class="meta-item" id="headerLicense">
+                    <i class="fas fa-id-card"></i> —
+                </span>
+                <span class="meta-item" id="headerBus">
+                    <i class="fas fa-bus"></i> —
+                </span>
+                <span class="role-badge">Driver</span>
+                <span class="status-pill" id="headerStatus">
+                    <i class="fas fa-circle"></i> Active
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="profile-tabs" id="profileTabs">
+        <button type="button" class="ptab active" data-tab="personal">
+            <i class="fas fa-user"></i> Personal Info
+        </button>
+        <button type="button" class="ptab" data-tab="security">
+            <i class="fas fa-shield-alt"></i> Security
+        </button>
+        <button type="button" class="ptab" data-tab="history">
+            <i class="fas fa-history"></i> Trip History
+        </button>
+    </div>
+
+    <!-- ============ PERSONAL INFO PANEL ============ -->
+    <div class="tab-panel active" id="panelPersonal">
+
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-user-circle"></i> Personal Information</h3>
+                <button type="button" class="btn-edit" id="editToggleBtn">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+            </div>
+
+            <form id="personalForm">
+                <div class="form-row-2">
+                    <div class="form-field readonly">
+                        <label>Full Name <i class="fas fa-lock"></i></label>
+                        <input type="text" id="fullName" readonly />
+                    </div>
+                    <div class="form-field readonly">
+                        <label>Email <i class="fas fa-lock"></i></label>
+                        <input type="email" id="email" readonly />
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field readonly">
+                        <label>License Number <i class="fas fa-lock"></i></label>
+                        <input type="text" id="licenseNumber" readonly />
+                    </div>
+                    <div class="form-field readonly">
+                        <label>Assigned Bus <i class="fas fa-lock"></i></label>
+                        <input type="text" id="assignedBus" readonly />
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phone" placeholder="+880 1XXXXXXXXX" disabled />
+                    </div>
+                    <div class="form-field">
+                        <label>Address (Optional)</label>
+                        <input type="text" id="address" placeholder="Home address" disabled />
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Emergency Contact Name</label>
+                        <input type="text" id="emergencyName" placeholder="Contact person" disabled />
+                    </div>
+                    <div class="form-field">
+                        <label>Emergency Contact Phone</label>
+                        <input type="tel" id="emergencyPhone" placeholder="+880 1XXXXXXXXX" disabled />
+                    </div>
+                </div>
+
+                <div class="form-actions" id="personalActions" style="display:none;">
+                    <button type="button" class="btn-cancel" id="cancelPersonalBtn">Cancel</button>
+                    <button type="submit" class="btn-save" id="savePersonalBtn">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-chart-line"></i> Account Summary</h3>
+            </div>
+            <div class="activity-grid">
+                <div class="activity-item">
+                    <div class="activity-icon green"><i class="fas fa-circle"></i></div>
+                    <div class="activity-info">
+                        <strong id="statStatus">Active</strong>
+                        <span>Account Status</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon blue"><i class="fas fa-calendar-check"></i></div>
+                    <div class="activity-info">
+                        <strong id="statSince">—</strong>
+                        <span>Member Since</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon orange"><i class="fas fa-bus"></i></div>
+                    <div class="activity-info">
+                        <strong id="statBus">—</strong>
+                        <span>Assigned Bus</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============ SECURITY PANEL ============ -->
+    <div class="tab-panel" id="panelSecurity">
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-lock"></i> Change Password</h3>
+            </div>
+            <form id="passwordForm">
+                <div class="form-field">
+                    <label>Current Password <span class="req">*</span></label>
+                    <div class="pw-wrap">
+                        <input type="password" id="currentPassword" placeholder="Enter current password" required />
+                        <button type="button" class="pw-toggle" onclick="togglePw('currentPassword', this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>New Password <span class="req">*</span></label>
+                        <div class="pw-wrap">
+                            <input type="password" id="newPassword" placeholder="Min 8 characters" minlength="8" required />
+                            <button type="button" class="pw-toggle" onclick="togglePw('newPassword', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Confirm New Password <span class="req">*</span></label>
+                        <div class="pw-wrap">
+                            <input type="password" id="confirmPassword" placeholder="Repeat new password" minlength="8" required />
+                            <button type="button" class="pw-toggle" onclick="togglePw('confirmPassword', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-note">
+                    <i class="fas fa-info-circle"></i>
+                    Password must be at least 8 characters long and different from your current one.
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="savePasswordBtn">
+                        <i class="fas fa-key"></i> Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============ TRIP HISTORY PANEL ============ -->
+    <div class="tab-panel" id="panelHistory">
+
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-medal"></i> Performance Summary</h3>
+            </div>
+            <div class="activity-grid">
+                <div class="activity-item">
+                    <div class="activity-icon blue"><i class="fas fa-route"></i></div>
+                    <div class="activity-info">
+                        <strong id="summaryTrips">0</strong>
+                        <span>Trips Completed</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon green"><i class="fas fa-users"></i></div>
+                    <div class="activity-info">
+                        <strong id="summaryPassengers">0</strong>
+                        <span>Passengers Carried</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon orange"><i class="fas fa-tachometer-alt"></i></div>
+                    <div class="activity-info">
+                        <strong id="summaryOnTime">—</strong>
+                        <span>On-Time Rate</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon yellow"><i class="fas fa-calendar-day"></i></div>
+                    <div class="activity-info">
+                        <strong id="summaryToday">0</strong>
+                        <span>Trips Today</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h3><i class="fas fa-history"></i> Recent Trips</h3>
+                <a href="/driver/todays-trips.html" class="btn-view-all">
+                    View All <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            <div class="recent-trips-list" id="recentTrips">
+                <div class="empty-state">
+                    <i class="fas fa-bus"></i>
+                    <p>No trips yet</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/js/driver/profile.js"></script>
+</body>
+</html>
