@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Drivers – UniBus Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin/drivers.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/admin/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/admin/buses.html" class="nav-item"><i class="fas fa-bus"></i><span>Manage Buses</span></a>
+        <a href="/admin/routes.html" class="nav-item"><i class="fas fa-route"></i><span>Manage Routes</span></a>
+        <a href="/admin/drivers.html" class="nav-item active"><i class="fas fa-id-card"></i><span>Manage Drivers</span></a>
+        <a href="/admin/schedules.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Schedules</span></a>
+        <a href="/admin/live-buses.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Live Monitoring</span></a>
+        <a href="/admin/reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+        <a href="/admin/users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="/admin/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <a href="/admin/notifications.html" class="icon-btn" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notifBadge">0</span>
+            </a>
+            <a href="/admin/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">admin</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <div class="page-header">
+        <div>
+            <h1>Manage Drivers</h1>
+            <p>Create driver accounts and assign them to buses.</p>
+        </div>
+        <button type="button" class="btn-add" id="addDriverBtn">
+            <i class="fas fa-user-plus"></i> Create Driver Account
+        </button>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-bar">
+        <div class="filter-field search-field">
+            <label><i class="fas fa-search"></i> Search</label>
+            <input type="text" id="searchInput" placeholder="Name, email, phone..." />
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-toggle-on"></i> Status</label>
+            <select id="statusFilter">
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-bus"></i> Assigned Bus</label>
+            <select id="busFilter">
+                <option value="all">All Drivers</option>
+                <option value="assigned">Assigned</option>
+                <option value="unassigned">Unassigned</option>
+            </select>
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-sort"></i> Sort By</label>
+            <select id="sortFilter">
+                <option value="name">Name</option>
+                <option value="created">Date Created</option>
+            </select>
+        </div>
+        <button type="button" class="btn-reset" id="resetFiltersBtn">
+            <i class="fas fa-redo"></i> Reset
+        </button>
+    </div>
+
+    <div class="driver-count-bar">
+        <span id="driverCount">0 drivers</span>
+    </div>
+
+    <div id="driverTableContainer">
+        <div class="loading-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     CREATE / EDIT DRIVER MODAL
+============================================================ -->
+<div class="modal-overlay" id="driverModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 id="modalTitle"><i class="fas fa-user-plus"></i> Create Driver Account</h2>
+            <button type="button" class="modal-close" id="closeModalBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="driverForm">
+            <div class="modal-body">
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Full Name <span class="req">*</span></label>
+                        <input type="text" id="driverName" placeholder="e.g. Mr. Rahman" required />
+                        <span class="field-error" id="errDriverName"></span>
+                    </div>
+                    <div class="form-field">
+                        <label>Email <span class="req">*</span></label>
+                        <input type="email" id="driverEmail" placeholder="rahman@unibus.com" required />
+                        <span class="field-error" id="errDriverEmail"></span>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Phone Number <span class="req">*</span></label>
+                        <input type="tel" id="driverPhone" placeholder="+880 1XXXXXXXXX" required />
+                        <span class="field-error" id="errDriverPhone"></span>
+                    </div>
+                    <div class="form-field">
+                        <label>License Number <span class="req">*</span></label>
+                        <input type="text" id="driverLicense" placeholder="DHA-123456" required />
+                        <span class="field-error" id="errDriverLicense"></span>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Assign Bus</label>
+                        <select id="driverBus">
+                            <option value="">Unassigned</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Status <span class="req">*</span></label>
+                        <select id="driverStatus" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Passwords (create only) -->
+                <div id="passwordSection">
+                    <div class="form-row-2">
+                        <div class="form-field">
+                            <label>Temporary Password <span class="req">*</span></label>
+                            <div class="pw-wrap">
+                                <input type="password" id="driverPassword" placeholder="Min 8 chars" minlength="8" />
+                                <button type="button" class="pw-toggle" onclick="togglePw('driverPassword', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <span class="field-error" id="errDriverPassword"></span>
+                        </div>
+                        <div class="form-field">
+                            <label>Confirm Password <span class="req">*</span></label>
+                            <div class="pw-wrap">
+                                <input type="password" id="driverConfirm" placeholder="Repeat password" minlength="8" />
+                                <button type="button" class="pw-toggle" onclick="togglePw('driverConfirm', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <span class="field-error" id="errDriverConfirm"></span>
+                        </div>
+                    </div>
+                    <div class="info-note">
+                        <i class="fas fa-info-circle"></i>
+                        Share this temporary password with the driver. They can change it after their first login.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+                <button type="submit" class="btn-save" id="saveBtn">
+                    <i class="fas fa-save"></i> Save Driver
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================
+     RESET PASSWORD MODAL
+============================================================ -->
+<div class="modal-overlay" id="pwModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-key"></i> Reset Password</h2>
+            <button type="button" class="modal-close" id="closePwBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="pwForm">
+            <div class="modal-body">
+                <p style="font-size:0.88rem; color: var(--gray); margin-bottom: 16px;">
+                    Set a new temporary password for <strong id="pwDriverName">this driver</strong>.
+                </p>
+                <div class="form-field">
+                    <label>New Password <span class="req">*</span></label>
+                    <div class="pw-wrap">
+                        <input type="password" id="newPw" placeholder="Min 8 chars" minlength="8" required />
+                        <button type="button" class="pw-toggle" onclick="togglePw('newPw', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="field-error" id="errNewPw"></span>
+                </div>
+                <div class="form-field">
+                    <label>Confirm Password <span class="req">*</span></label>
+                    <div class="pw-wrap">
+                        <input type="password" id="confirmPw" placeholder="Repeat password" minlength="8" required />
+                        <button type="button" class="pw-toggle" onclick="togglePw('confirmPw', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="field-error" id="errConfirmPw"></span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelPwBtn">Cancel</button>
+                <button type="submit" class="btn-save" id="resetPwBtn">
+                    <i class="fas fa-key"></i> Reset Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================
+     DELETE CONFIRMATION
+============================================================ -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header danger">
+            <h2><i class="fas fa-exclamation-triangle"></i> Delete Driver</h2>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteDriverName">this driver</strong>?</p>
+            <p class="modal-hint">Recommended: deactivate instead to preserve trip history.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelDeleteBtn">Cancel</button>
+            <button type="button" class="btn-danger" id="confirmDeleteBtn">
+                <i class="fas fa-trash"></i> Yes, Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/js/admin/drivers.js"></script>
+</body>
+</html>

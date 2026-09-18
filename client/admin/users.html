@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Users – UniBus Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin/users.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/admin/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/admin/buses.html" class="nav-item"><i class="fas fa-bus"></i><span>Manage Buses</span></a>
+        <a href="/admin/routes.html" class="nav-item"><i class="fas fa-route"></i><span>Manage Routes</span></a>
+        <a href="/admin/drivers.html" class="nav-item"><i class="fas fa-id-card"></i><span>Manage Drivers</span></a>
+        <a href="/admin/schedules.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Schedules</span></a>
+        <a href="/admin/live-buses.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Live Monitoring</span></a>
+        <a href="/admin/reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+        <a href="/admin/users.html" class="nav-item active"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="/admin/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <a href="/admin/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">admin</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <div class="page-header">
+        <div>
+            <h1>Manage Users</h1>
+            <p>View and manage all registered accounts.</p>
+        </div>
+        <button type="button" class="btn-export" id="exportBtn">
+            <i class="fas fa-download"></i> Export CSV
+        </button>
+    </div>
+
+    <!-- ROLE TABS -->
+    <div class="role-tabs" id="roleTabs">
+        <button class="tab-btn active" data-role="all">
+            <i class="fas fa-users"></i> All <span class="tab-count" id="countAll">0</span>
+        </button>
+        <button class="tab-btn" data-role="student">
+            <i class="fas fa-user-graduate"></i> Students <span class="tab-count" id="countStudents">0</span>
+        </button>
+        <button class="tab-btn" data-role="driver">
+            <i class="fas fa-id-card"></i> Drivers <span class="tab-count" id="countDrivers">0</span>
+        </button>
+        <button class="tab-btn" data-role="admin">
+            <i class="fas fa-user-tie"></i> Admins <span class="tab-count" id="countAdmins">0</span>
+        </button>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-bar">
+        <div class="filter-field search-field">
+            <label><i class="fas fa-search"></i> Search</label>
+            <input type="text" id="searchInput" placeholder="Name, email, ID, phone..." />
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-toggle-on"></i> Status</label>
+            <select id="statusFilter">
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="filter-field">
+            <label><i class="fas fa-sort"></i> Sort By</label>
+            <select id="sortFilter">
+                <option value="name">Name (A→Z)</option>
+                <option value="created">Newest First</option>
+                <option value="email">Email</option>
+            </select>
+        </div>
+        <button type="button" class="btn-reset" id="resetFiltersBtn">
+            <i class="fas fa-redo"></i> Reset
+        </button>
+    </div>
+
+    <div class="user-count-bar">
+        <span id="userCount">0 users</span>
+    </div>
+
+    <div id="usersTableContainer">
+        <div class="loading-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW USER MODAL ============ -->
+<div class="modal-overlay" id="viewModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2><i class="fas fa-user"></i> User Details</h2>
+            <button type="button" class="modal-close" id="closeViewBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="viewBody"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="closeViewBtn2">Close</button>
+            <button type="button" class="btn-save" id="viewEditBtn"><i class="fas fa-pen"></i> Edit User</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ EDIT USER MODAL ============ -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2><i class="fas fa-pen"></i> Edit User</h2>
+            <button type="button" class="modal-close" id="closeEditBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="editForm">
+            <div class="modal-body">
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Full Name <span class="req">*</span></label>
+                        <input type="text" id="editName" required />
+                        <span class="field-error" id="errEditName"></span>
+                    </div>
+                    <div class="form-field">
+                        <label>Email <i class="fas fa-lock" style="font-size:0.7rem;color:var(--gray);"></i></label>
+                        <input type="email" id="editEmail" disabled />
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Phone</label>
+                        <input type="tel" id="editPhone" placeholder="+880 1XXXXXXXXX" />
+                    </div>
+                    <div class="form-field">
+                        <label>Role</label>
+                        <select id="editRole">
+                            <option value="student">Student</option>
+                            <option value="driver">Driver</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Department (Students)</label>
+                        <select id="editDepartment">
+                            <option value="">—</option>
+                            <option value="CSE">CSE</option>
+                            <option value="EEE">EEE</option>
+                            <option value="BBA">BBA</option>
+                            <option value="Civil">Civil Engineering</option>
+                            <option value="Mechanical">Mechanical Engineering</option>
+                            <option value="English">English</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Year / Semester</label>
+                        <select id="editYear">
+                            <option value="">—</option>
+                            <option value="1-1">1st Year, 1st Semester</option>
+                            <option value="1-2">1st Year, 2nd Semester</option>
+                            <option value="1-3">1st Year, 3rd Semester</option>
+                            <option value="2-1">2nd Year, 1st Semester</option>
+                            <option value="2-2">2nd Year, 2nd Semester</option>
+                            <option value="2-3">2nd Year, 3rd Semester</option>
+                            <option value="3-1">3rd Year, 1st Semester</option>
+                            <option value="3-2">3rd Year, 2nd Semester</option>
+                            <option value="3-3">3rd Year, 3rd Semester</option>
+                            <option value="4-1">4th Year, 1st Semester</option>
+                            <option value="4-2">4th Year, 2nd Semester</option>
+                            <option value="4-3">4th Year, 3rd Semester</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label>Status</label>
+                    <select id="editStatus">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelEditBtn">Cancel</button>
+                <button type="submit" class="btn-save" id="saveEditBtn"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============ RESET PASSWORD MODAL ============ -->
+<div class="modal-overlay" id="pwModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-key"></i> Reset Password</h2>
+            <button type="button" class="modal-close" id="closePwBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="pwForm">
+            <div class="modal-body">
+                <p style="font-size:0.88rem;color:var(--gray);margin-bottom:16px;">
+                    Set a new temporary password for <strong id="pwUserName">this user</strong>.
+                </p>
+                <div class="form-field">
+                    <label>New Password <span class="req">*</span></label>
+                    <div class="pw-wrap">
+                        <input type="password" id="newPw" placeholder="Min 8 chars" minlength="8" required />
+                        <button type="button" class="pw-toggle" onclick="togglePw('newPw', this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <span class="field-error" id="errNewPw"></span>
+                </div>
+                <div class="form-field">
+                    <label>Confirm Password <span class="req">*</span></label>
+                    <div class="pw-wrap">
+                        <input type="password" id="confirmPw" placeholder="Repeat password" minlength="8" required />
+                        <button type="button" class="pw-toggle" onclick="togglePw('confirmPw', this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <span class="field-error" id="errConfirmPw"></span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelPwBtn">Cancel</button>
+                <button type="submit" class="btn-save" id="resetPwBtn"><i class="fas fa-key"></i> Reset Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============ DELETE MODAL ============ -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header danger">
+            <h2><i class="fas fa-exclamation-triangle"></i> Delete User</h2>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteUserName">this user</strong>?</p>
+            <p class="modal-hint">This action cannot be undone. Consider deactivating instead to preserve history.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelDeleteBtn">Cancel</button>
+            <button type="button" class="btn-warning" id="deactivateBtn">
+                <i class="fas fa-ban"></i> Deactivate
+            </button>
+            <button type="button" class="btn-danger" id="confirmDeleteBtn">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/js/admin/users.js"></script>
+</body>
+</html>
