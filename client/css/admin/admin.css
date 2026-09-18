@@ -1,0 +1,210 @@
+/* =====================================================
+   UNIBUS — Admin Styles
+   Extends dashboard.css
+===================================================== */
+
+/* Second stats row with 3 columns */
+.stats-row-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Stat cards as links */
+a.stat-card {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* Fleet map */
+.fleet-map {
+    height: 340px;
+    width: 100%;
+    background: var(--light-2);
+}
+
+/* Fleet table */
+.fleet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.fleet-table thead th {
+    background: var(--light);
+    padding: 14px 20px;
+    text-align: left;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+}
+
+.fleet-table tbody td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+    color: var(--dark);
+}
+
+.fleet-table tbody tr:last-child td { border-bottom: none; }
+.fleet-table tbody tr:hover { background: var(--light); }
+
+.fleet-table .bus-cell {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+
+.fleet-table .driver-cell {
+    color: var(--dark);
+    font-weight: 500;
+}
+
+.fleet-table .route-cell {
+    color: var(--gray);
+    font-size: 0.85rem;
+}
+
+.fleet-table .seats-cell {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.9rem;
+    color: var(--dark);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.status-pill i { font-size: 0.6rem; }
+
+.status-pill.on-trip {
+    background: rgba(16,185,129,0.12);
+    color: #059669;
+}
+
+.status-pill.delayed {
+    background: rgba(234,179,8,0.15);
+    color: #a16207;
+}
+
+.status-pill.idle {
+    background: rgba(100,116,139,0.12);
+    color: #64748b;
+}
+
+.status-pill.issue {
+    background: rgba(239,68,68,0.12);
+    color: #dc2626;
+}
+
+/* Alerts */
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.alert-item:last-child { border-bottom: none; }
+
+.alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.alert-icon.delay { background: rgba(239,68,68,0.12); color: #dc2626; }
+.alert-icon.booking { background: rgba(16,185,129,0.12); color: #059669; }
+.alert-icon.trip { background: rgba(59,130,246,0.12); color: #2563eb; }
+.alert-icon.general { background: rgba(100,116,139,0.12); color: #64748b; }
+
+.alert-content {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.alert-content h5 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0 0 2px;
+    color: var(--dark);
+    font-family: 'DM Sans', sans-serif;
+}
+
+.alert-content p {
+    font-size: 0.78rem;
+    color: var(--gray);
+    margin: 0 0 4px;
+    line-height: 1.4;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.alert-time {
+    font-size: 0.7rem;
+    color: var(--gray-light);
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* Map status bar */
+.map-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    font-size: 0.82rem;
+    color: var(--gray);
+    border-top: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .stats-row-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .fleet-table thead th:nth-child(3),
+    .fleet-table tbody td:nth-child(3),
+    .fleet-table thead th:nth-child(5),
+    .fleet-table tbody td:nth-child(5) {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-row-3 {
+        grid-template-columns: 1fr;
+    }
+    .fleet-table thead th,
+    .fleet-table tbody td {
+        padding: 10px 14px;
+        font-size: 0.8rem;
+    }
+    .fleet-table thead th:nth-child(2),
+    .fleet-table tbody td:nth-child(2) {
+        display: none;
+    }
+    .fleet-map { height: 260px; }
+}
