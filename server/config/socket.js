@@ -6,34 +6,35 @@ let io;
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-  origin: process.env.FRONTEND_URL || "http://localhost:5000",
-  methods: ["GET", "POST"],
-  credentials: true,
-},
+      origin: [
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+        "https://uni-a-c261.vercel.app",   // ← your real Vercel URL, no slash
+        process.env.FRONTEND_URL,
+      ].filter(Boolean),
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
   });
 
   io.on("connection", (socket) => {
     console.log(`🔌 User connected: ${socket.id}`);
 
-    // Join a specific trip room
     socket.on("join-trip", (tripId) => {
       socket.join(`trip-${tripId}`);
       console.log(`📍 ${socket.id} joined trip-${tripId}`);
     });
 
-    // Leave a trip room
     socket.on("leave-trip", (tripId) => {
       socket.leave(`trip-${tripId}`);
       console.log(`📍 ${socket.id} left trip-${tripId}`);
     });
 
-    // Join admin monitoring room
     socket.on("join-admin-room", () => {
       socket.join("admins");
       console.log(`👨‍💼 ${socket.id} joined admins room`);
     });
 
-    // Driver broadcasts location
     socket.on("update-location", (data) => {
       const { tripId, latitude, longitude } = data;
       io.to(`trip-${tripId}`).emit("location-updated", {
@@ -44,7 +45,6 @@ export const initSocket = (server) => {
       });
     });
 
-    // Trip status update — forwards ALL fields
     socket.on("trip-status-update", (data) => {
       const { tripId, ...rest } = data;
       if (!tripId) return;
@@ -55,7 +55,6 @@ export const initSocket = (server) => {
         timestamp: new Date(),
       });
 
-      // Also notify admins
       io.to("admins").emit("admin-trip-update", {
         tripId,
         ...rest,
@@ -63,7 +62,6 @@ export const initSocket = (server) => {
       });
     });
 
-    // NEW: Driver report — rich data for students
     socket.on("driver-report", (data) => {
       const { tripId } = data;
       if (!tripId) return;
@@ -75,7 +73,6 @@ export const initSocket = (server) => {
         timestamp: new Date(),
       });
 
-      // Also notify admins
       io.to("admins").emit("admin-driver-report", {
         ...data,
         timestamp: new Date(),
