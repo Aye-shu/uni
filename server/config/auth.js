@@ -44,7 +44,7 @@ export const initAuth = async () => {
       baseURL,
       "http://localhost:5000",
       "http://127.0.0.1:5000",
-      "https://uni-a-c261.vercel.app",
+      "https://uni-phi-gold.vercel.app/",
       /\.onrender\.com$/,      // Render
       /\.app\.github\.dev$/,   // Codespaces
     ],
