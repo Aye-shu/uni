@@ -9,7 +9,7 @@ export const initSocket = (server) => {
       origin: [
         "http://localhost:5000",
         "http://127.0.0.1:5000",
-        "https://uni-a-c261.vercel.app",   // ← your real Vercel URL, no slash
+        "https://uni-e7l7.onrender.com",
         process.env.FRONTEND_URL,
       ].filter(Boolean),
       methods: ["GET", "POST"],
