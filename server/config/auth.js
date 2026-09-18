@@ -6,37 +6,44 @@ import { MongoClient } from "mongodb";
 let authInstance = null;
 let mongoClient = null;
 
-/* ============================================================
-   Lazy Resend client
-   - Server boots fine without RESEND_API_KEY
-   - Only errors when a reset email is actually requested
-============================================================ */
+// ============================================================
+// Lazy Resend client
+// ============================================================
 let resendClient = null;
 const getResend = async () => {
   if (resendClient) return resendClient;
-
   if (!process.env.RESEND_API_KEY) {
     throw new Error(
-      "RESEND_API_KEY is not set. Add it to your .env file to send reset emails."
+      "RESEND_API_KEY is not set. Add it to your environment variables to send reset emails."
     );
   }
-
   const { Resend } = await import("resend");
   resendClient = new Resend(process.env.RESEND_API_KEY);
   return resendClient;
 };
 
+// ============================================================
+// Initialize Better Auth
+// ============================================================
 export const initAuth = async () => {
   if (authInstance) return authInstance;
 
+  if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is not set.");
+  if (!process.env.BETTER_AUTH_SECRET) throw new Error("BETTER_AUTH_SECRET is not set.");
+
   mongoClient = new MongoClient(process.env.MONGODB_URI);
   await mongoClient.connect();
+
+  // IMPORTANT: use the same database as the rest of UniBus
   const db = mongoClient.db("uni");
 
   const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:5000";
 
   authInstance = betterAuth({
+    // ----- Database -----
     database: mongodbAdapter(db),
+
+    // ----- Security -----
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL,
     basePath: "/api/auth",
@@ -44,21 +51,19 @@ export const initAuth = async () => {
       baseURL,
       "http://localhost:5000",
       "http://127.0.0.1:5000",
+      "https://uni-e7l7.onrender.com",
       "https://uni-a-c261.vercel.app",
-      /\.onrender\.com$/,      // Render
-      /\.app\.github\.dev$/,   // Codespaces
+      "https://uni-phi-gold.vercel.app",
     ],
+
+    // ----- Email + Password -----
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 6,
 
-      /* ============================================================
-         Reset password email
-      ============================================================ */
-      sendResetPassword: async ({ user, url, token }) => {
+      sendResetPassword: async ({ user, url }) => {
         try {
           const resend = await getResend();
-
           await resend.emails.send({
             from: "UniBus <onboarding@resend.dev>",
             to: user.email,
@@ -70,9 +75,8 @@ export const initAuth = async () => {
                   Hi ${user.name || "there"}, we received a request to reset your UniBus password.
                 </p>
                 <p style="text-align:center;margin:32px 0;">
-                  <a href="${url}"
-                     style="background:#f97316;color:#fff;padding:14px 28px;
-                            border-radius:10px;text-decoration:none;font-weight:700;">
+                  <a href="${url}" style="background:#f97316;color:#fff;padding:14px 28px;
+                     border-radius:10px;text-decoration:none;font-weight:700;">
                     Reset Password
                   </a>
                 </p>
@@ -86,17 +90,15 @@ export const initAuth = async () => {
               </div>
             `,
           });
-
           console.log(`✅ Reset email sent to ${user.email}`);
         } catch (err) {
-          console.error("❌ Resend error:", JSON.stringify({
+          console.error("❌ Resend error:", {
             message: err.message,
             error: err.error,
             statusCode: err.statusCode,
             name: err.name,
-          }, null, 2));
-
-          // Fallback: print link in terminal so you can still test
+          });
+          // Fallback for development/testing
           console.log("\n🔗 ===== PASSWORD RESET LINK (fallback) =====");
           console.log(`To:   ${user.email}`);
           console.log(`Link: ${url}`);
@@ -104,16 +106,25 @@ export const initAuth = async () => {
         }
       },
     },
+
+    // ----- Session -----
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
     },
+
+    // ----- Additional User Fields -----
     user: {
       additionalFields: {
-        role:          { type: "string", required: false, defaultValue: "student" },
-        phone:         { type: "string", required: false },
-        studentId:     { type: "string", required: false },
-        department:    { type: "string", required: false },
+        role: {
+          type: "string",
+          required: false,
+          defaultValue: "student",
+          input: false,
+        },
+        phone: { type: "string", required: false },
+        studentId: { type: "string", required: false },
+        department: { type: "string", required: false },
         licenseNumber: { type: "string", required: false },
       },
     },
