@@ -5,7 +5,6 @@ import cors from "cors";
 import http from "http";
 import path from "path";
 import fs from "fs";
-import cors from 'cors';
 
 import { fileURLToPath } from "url";
 import { toNodeHandler } from "better-auth/node";
@@ -55,10 +54,14 @@ const server = http.createServer(app);
 initSocket(server);
 
 // NEW
-import cors from 'cors';
 app.use(cors({
-    origin: process.env.FRONTEND_URL, // This will be your Vercel URL
-    credentials: true
+  origin: [
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://uni-a-c261.vercel.app",
+    process.env.FRONTEND_URL,
+  ].filter(Boolean),
+  credentials: true,
 }));
 
 const PORT = process.env.PORT || 5000;
