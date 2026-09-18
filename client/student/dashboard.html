@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard – UniBus</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet (for mini map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+============================================================ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="/student/dashboard.html" class="nav-item active">
+            <i class="fas fa-th-large"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/student/classes.html" class="nav-item">
+            <i class="fas fa-calendar-alt"></i>
+            <span>My Classes</span>
+        </a>
+        <a href="/student/find-bus.html" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Find Bus</span>
+        </a>
+        <a href="/student/bookings.html" class="nav-item">
+            <i class="fas fa-ticket-alt"></i>
+            <span>My Bookings</span>
+        </a>
+        <a href="/student/track-bus.html" class="nav-item">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Track Bus</span>
+        </a>
+        <a href="/student/profile.html" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </button>
+    </div>
+</aside>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<div class="main-content" id="mainContent">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="topbar-right">
+            <a href="/student/notification.html" class="icon-btn" id="notifBtn" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notifBadge">3</span>
+            </a>
+
+            <a href="/student/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">S</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Student</span>
+                    <span class="user-role" id="userRole">student</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- DASHBOARD CONTENT -->
+    <main class="dashboard-content">
+
+        <!-- ========== WELCOME BANNER ========== -->
+        <div class="welcome-card">
+            <div class="welcome-text">
+                <h1>Welcome back, <span id="welcomeName">Student</span>! 👋</h1>
+                <p id="welcomeSummary">Loading your day...</p>
+                <span class="welcome-date" id="welcomeDate"></span>
+            </div>
+            <div class="welcome-illustration">🚌</div>
+        </div>
+
+        <!-- ========== STATS ROW ========== -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-book"></i></div>
+                <div class="stat-info">
+                    <h3 id="statClasses">0</h3>
+                    <p>Classes Today</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-ticket-alt"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBookings">0</h3>
+                    <p>Upcoming Trips</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="fas fa-bus"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBuses">0</h3>
+                    <p>Available Buses</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red"><i class="fas fa-clock"></i></div>
+                <div class="stat-info">
+                    <h3 id="statDelays">0</h3>
+                    <p>Active Delays</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== MAIN GRID ========== -->
+        <div class="dashboard-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="grid-left">
+
+                <!-- Today's Classes -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-calendar-day"></i> Today's Classes</h2>
+                        <a href="/student/classes.html" class="card-link">Manage <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body" id="todayClasses">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Recommendation -->
+                <div class="content-card recommendation-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-star"></i> Smart Bus Recommendation</h2>
+                    </div>
+                    <div class="card-body" id="recommendationContent">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Bookings -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-ticket-alt"></i> Upcoming Bookings</h2>
+                        <a href="/student/bookings.html" class="card-link">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body" id="upcomingBookings">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="grid-right">
+
+                <!-- Mini Live Map -->
+                <div class="content-card map-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-map-marked-alt"></i> Live Tracking</h2>
+                        <a href="/student/track-bus.html" class="card-link">Full Map <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="miniMap" class="mini-map"></div>
+                        <div class="map-status" id="mapStatus">
+                            <span class="status-dot"></span>
+                            No active trips to track
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-actions">
+                            <a href="/student/find-bus.html" class="quick-action">
+                                <i class="fas fa-search"></i>
+                                <span>Find Bus</span>
+                            </a>
+                            <a href="/student/classes.html" class="quick-action">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Add Class</span>
+                            </a>
+                            <a href="/student/bookings.html" class="quick-action">
+                                <i class="fas fa-list"></i>
+                                <span>Bookings</span>
+                            </a>
+                            <a href="/student/track-bus.html" class="quick-action">
+                                <i class="fas fa-map-pin"></i>
+                                <span>Track</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-bell"></i> Notifications</h2>
+                        <a href="/student/notification.html" class="card-link">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body" id="notificationsList">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/student/dashboard.js"></script>
+</body>
+</html>

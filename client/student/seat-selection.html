@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seat Selection – UniBus</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/seat-selection.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/student/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/student/classes.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>My Classes</span></a>
+        <a href="/student/find-bus.html" class="nav-item"><i class="fas fa-search"></i><span>Find Bus</span></a>
+        <a href="/student/bookings.html" class="nav-item"><i class="fas fa-ticket-alt"></i><span>My Bookings</span></a>
+        <a href="/student/track-bus.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Track Bus</span></a>
+        <a href="/student/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar">S</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Student</span>
+                    <span class="user-role" id="userRole">student</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>Select Your Seat</h1>
+            <p>Choose an available seat for your trip.</p>
+        </div>
+        <a href="/student/find-bus.html" class="btn-change">
+            <i class="fas fa-exchange-alt"></i> Change Bus
+        </a>
+    </div>
+
+    <!-- TRIP SUMMARY -->
+    <div class="trip-summary" id="tripSummary">
+        <div class="trip-loading">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+        </div>
+    </div>
+
+    <!-- MAIN LAYOUT: SEAT MAP + BOOKING PANEL -->
+    <div class="seat-layout">
+
+        <!-- SEAT MAP -->
+        <div class="seat-map-wrapper">
+            <div class="seat-map-header">
+                <h2>Bus Layout</h2>
+                <div class="legend">
+                    <span><i class="seat-dot available"></i> Available</span>
+                    <span><i class="seat-dot taken"></i> Taken</span>
+                    <span><i class="seat-dot selected"></i> Selected</span>
+                </div>
+            </div>
+
+            <div class="bus-container">
+                <div class="bus-driver">
+                    <i class="fas fa-steering-wheel"></i>
+                    <span>Driver</span>
+                </div>
+
+                <div class="seat-grid" id="seatGrid">
+                    <!-- Filled by JS -->
+                    <div class="seat-loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading seats...
+                    </div>
+                </div>
+
+                <div class="bus-back">
+                    <span>Back of Bus</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOOKING PANEL (sticky) -->
+        <aside class="booking-panel">
+            <div class="panel-card">
+                <h3>Booking Summary</h3>
+
+                <div class="panel-row">
+                    <span>Bus</span>
+                    <strong id="panelBus">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Route</span>
+                    <strong id="panelRoute">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Date</span>
+                    <strong id="panelDate">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Departure</span>
+                    <strong id="panelDeparture">—</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Direction</span>
+                    <strong id="panelDirection">—</strong>
+                </div>
+
+                <hr />
+
+                <div class="panel-row highlighted">
+                    <span>Selected Seat</span>
+                    <strong id="panelSeat">None</strong>
+                </div>
+                <div class="panel-row">
+                    <span>Fare</span>
+                    <strong id="panelFare">৳ 0</strong>
+                </div>
+
+                <button class="btn-confirm" id="confirmBtn" disabled>
+                    <i class="fas fa-check-circle"></i> Confirm Booking
+                </button>
+                <button class="btn-cancel-booking" id="cancelBtn">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </aside>
+
+    </div>
+</div>
+
+<!-- CONFIRMATION MODAL -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-ticket-alt"></i> Confirm Booking</h2>
+        </div>
+        <div class="modal-body">
+            <p>Do you want to book <strong id="confirmSeat">Seat</strong> on <strong id="confirmBus">Bus</strong> for <strong id="confirmDate">Date</strong>?</p>
+            <p class="modal-hint">You can cancel from My Bookings later.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="modalCancelBtn">Cancel</button>
+            <button type="button" class="btn-save" id="modalConfirmBtn">
+                <i class="fas fa-check"></i> Yes, Book It
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="successModal">
+    <div class="modal-box modal-sm">
+        <div class="success-state">
+            <div class="success-icon"><i class="fas fa-check"></i></div>
+            <h2>Seat Booked!</h2>
+            <p>Your booking is confirmed.</p>
+            <div class="success-details" id="successDetails"></div>
+            <div class="success-actions">
+                <a href="/student/bookings.html" class="btn-save">
+                    <i class="fas fa-list"></i> My Bookings
+                </a>
+                <a href="/student/track-bus.html" class="btn-cancel">
+                    <i class="fas fa-map-marker-alt"></i> Track Bus
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/js/student/seat-selection.js"></script>
+</body>
+</html>
