@@ -73,7 +73,7 @@ const startServer = async () => {
     const auth = getAuth();
 
     // 1. Better Auth BEFORE json
-    app.all("/api/auth/*splat", toNodeHandler(auth));
+app.use("/api/auth", toNodeHandler(auth));
 
     // 2. JSON body parsers
     app.use(express.json());
