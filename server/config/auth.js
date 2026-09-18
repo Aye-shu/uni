@@ -44,7 +44,9 @@ export const initAuth = async () => {
       baseURL,
       "http://localhost:5000",
       "http://127.0.0.1:5000",
-      /\.app\.github\.dev$/,
+      "https://uni-a-c261.vercel.app",
+      /\.onrender\.com$/,      // Render
+      /\.app\.github\.dev$/,   // Codespaces
     ],
     emailAndPassword: {
       enabled: true,
@@ -58,7 +60,8 @@ export const initAuth = async () => {
           const resend = await getResend();
 
           await resend.emails.send({
-from: "UniBus <noreply@unibus.yourdomain.com>",            to: user.email,
+            from: "UniBus <onboarding@resend.dev>",
+            to: user.email,
             subject: "Reset your UniBus password",
             html: `
               <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
@@ -86,9 +89,6 @@ from: "UniBus <noreply@unibus.yourdomain.com>",            to: user.email,
 
           console.log(`✅ Reset email sent to ${user.email}`);
         } catch (err) {
-          /* ============================================================
-             Detailed error output (this is the part you asked about)
-          ============================================================ */
           console.error("❌ Resend error:", JSON.stringify({
             message: err.message,
             error: err.error,
