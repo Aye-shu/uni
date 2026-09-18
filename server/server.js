@@ -73,11 +73,11 @@ const startServer = async () => {
     const auth = getAuth();
 
     // 1. Better Auth BEFORE json
-app.use("/api/auth", toNodeHandler(auth));
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
-    // 2. JSON body parsers
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+// 2. JSON body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
     // 3. API routes
     app.use("/api/student", studentRoutes);
