@@ -49,7 +49,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('filterDate')?.addEventListener('change', searchBuses);
 
     // ---------- Initial load ----------
-    await Promise.all([loadClasses(), searchBuses()]);
+    await loadClasses();
+    await searchBuses();
 });
 
 /* =====================================================
@@ -68,7 +69,8 @@ async function checkAuth() {
             return null;
         }
         return data.user;
-    } catch {
+    } catch (err) {
+        console.error('Auth check failed:', err);
         window.location.href = '/login.html';
         return null;
     }
@@ -107,7 +109,7 @@ async function searchBuses() {
         // Filter trips by day matching the selected date
         const selectedDay = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
         trips = trips.filter(t =>
-            t.status === 'scheduled' &&
+            (t.status === 'scheduled' || t.status === 'delayed') &&
             (t.day === selectedDay || !t.day)
         );
 
@@ -155,11 +157,14 @@ function computeRecommendation(trips, date, direction) {
 
     const classStart = timeToMinutes(nextClass.startTime);
 
-    // Best bus: departs 60–120 min before class start
+    // Best bus: departs 60–120 min before class start (outbound only)
     const candidates = trips
-        .filter(t => t.availableSeats > 0)
+        .filter(t => Number(t.availableSeats ?? 0) > 0)
         .map(t => ({ trip: t, dep: timeToMinutes(t.departureTime) }))
-        .filter(x => x.dep >= classStart - 120 && x.dep <= classStart - 30)
+        .filter(x => {
+            if (direction === 'return') return true;
+            return x.dep >= classStart - 120 && x.dep <= classStart - 30;
+        })
         .sort((a, b) => Math.abs(a.dep - (classStart - 75)) - Math.abs(b.dep - (classStart - 75)));
 
     if (candidates.length === 0) return null;
@@ -262,8 +267,8 @@ function renderBusCard(trip) {
 
     const busNum = trip.bus?.busNumber || 'Bus';
     const routeName = trip.route?.name || 'Campus Route';
-    const capacity = trip.bus?.capacity || 40;
-    const available = trip.availableSeats || 0;
+    const capacity = Number(trip.bus?.capacity ?? 40);
+    const available = Number(trip.availableSeats ?? 0);
     const fillPct = capacity > 0 ? ((capacity - available) / capacity) * 100 : 0;
 
     let fillClass = '';

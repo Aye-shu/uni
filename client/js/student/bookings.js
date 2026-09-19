@@ -87,7 +87,8 @@ async function checkAuth() {
             return null;
         }
         return data.user;
-    } catch {
+    } catch (err) {
+        console.error('Auth check failed:', err);
         window.location.href = '/login.html';
         return null;
     }
@@ -117,9 +118,6 @@ async function loadBookings() {
    COUNT BOOKINGS PER TAB
 ===================================================== */
 function updateCounts() {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
     const upcoming = allBookings.filter(b =>
         b.status === 'confirmed' && isUpcoming(b)
     ).length;
@@ -140,9 +138,6 @@ function updateCounts() {
    FILTER
 ===================================================== */
 function applyFilter() {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
     switch (currentFilter) {
         case 'upcoming':
             filteredBookings = allBookings.filter(b =>
@@ -171,12 +166,27 @@ function applyFilter() {
     renderBookings();
 }
 
+/* =====================================================
+   UPCOMING CHECK  (fixed: now uses date + departure time)
+===================================================== */
 function isUpcoming(booking) {
     if (!booking.travelDate) return true;
-    const t = new Date(booking.travelDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return t >= today;
+
+    const travel = new Date(booking.travelDate);
+
+    // Attach departure time if available
+    const depTime = booking.trip?.departureTime || booking.departureTime;
+    if (depTime && typeof depTime === 'string' && depTime.includes(':')) {
+        const [h, m] = depTime.split(':').map(Number);
+        if (!Number.isNaN(h) && !Number.isNaN(m)) {
+            travel.setHours(h, m, 0, 0);
+        }
+    } else {
+        // No time known — treat as end of that day
+        travel.setHours(23, 59, 59, 999);
+    }
+
+    return travel >= new Date();
 }
 
 /* =====================================================
@@ -239,7 +249,6 @@ function renderBookingCard(b) {
     // Determine effective status
     const isLive = trip.status === 'in-progress';
     const isPast = !isUpcoming(b) && b.status === 'confirmed';
-    let status = b.status;
     let statusClass = 'confirmed';
     let statusLabel = 'Confirmed';
     let statusIcon = 'fa-check-circle';
@@ -479,7 +488,7 @@ function showToast(type, title, message = '') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
-        <i class="fas ${icons[type]}"></i>
+        <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
         <div class="toast-content">
             <h5>${escapeHtml(title)}</h5>
             ${message ? `<p>${escapeHtml(message)}</p>` : ''}
