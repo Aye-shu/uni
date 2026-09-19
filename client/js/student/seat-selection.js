@@ -6,7 +6,7 @@ let currentTrip = null;
 let currentSeats = { available: [], taken: [], total: 0, capacity: 0 };
 let selectedSeat = null;
 let user = null;
-let selectedTravelDate = null;   // ← NEW: user-picked date
+let selectedTravelDate = null;   // user-picked date
 
 const FARE = 50; // Fare per seat
 
@@ -154,23 +154,45 @@ async function loadSeats(tripId) {
 /* =====================================================
    DATE HELPERS
 ===================================================== */
-// Returns the user-picked travel date as YYYY-MM-DD
 function getTravelDate() {
     if (selectedTravelDate) return selectedTravelDate;
     if (currentTrip?.date) {
-        // Fall back to trip's stored date
         const d = new Date(currentTrip.date);
         if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
     }
     return new Date().toISOString().split('T')[0];
 }
 
-// Pretty display: "21 Sep 2026"
 function formatTravelDate() {
     const iso = getTravelDate();
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/* =====================================================
+   STOP ID HELPER
+   Route stops may be full objects, subdocs, or IDs.
+   Always return a plain 24-char hex string (or null).
+===================================================== */
+function extractStopId(stop) {
+    if (!stop) return null;
+    if (typeof stop === 'string') return stop;
+    if (typeof stop === 'object') {
+        if (stop._id) return String(stop._id);
+        if (stop.id) return String(stop.id);
+    }
+    return null;
+}
+
+function getPickupStopId() {
+    const stops = currentTrip?.route?.stops || [];
+    return extractStopId(stops[0]);
+}
+
+function getDropoffStopId() {
+    const stops = currentTrip?.route?.stops || [];
+    return extractStopId(stops[stops.length - 1]);
 }
 
 /* =====================================================
@@ -338,7 +360,11 @@ async function createBooking() {
 
     try {
         const tripId = currentTrip._id;
-        const travelDate = getTravelDate();   // ← send the user-picked date
+        const travelDate = getTravelDate();
+
+        // Extract only the stop IDs — never send whole stop objects
+        const pickupStopId  = getPickupStopId();
+        const dropoffStopId = getDropoffStopId();
 
         const res = await fetch('/api/bookings', {
             method: 'POST',
@@ -347,9 +373,9 @@ async function createBooking() {
             body: JSON.stringify({
                 tripId,
                 seatNumber: selectedSeat,
-                travelDate,                     // ← NEW
-                pickupStop: currentTrip.route?.stops?.[0] || null,
-                dropoffStop: currentTrip.route?.stops?.[currentTrip.route.stops.length - 1] || null,
+                travelDate,
+                pickupStop: pickupStopId,
+                dropoffStop: dropoffStopId,
             }),
         });
 
