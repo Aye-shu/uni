@@ -358,7 +358,8 @@ window.bookBus = function (tripId) {
         date: document.getElementById('filterDate').value,
     }));
 
-    window.location.href = `/student/seat-selection.html?tripId=${tripId}`;
+const date = document.getElementById('filterDate').value;
+window.location.href = `/student/seat-selection.html?tripId=${tripId}&date=${date}`;
 };
 
 window.trackBus = function (tripId) {

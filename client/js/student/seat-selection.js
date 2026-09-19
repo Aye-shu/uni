@@ -6,6 +6,7 @@ let currentTrip = null;
 let currentSeats = { available: [], taken: [], total: 0, capacity: 0 };
 let selectedSeat = null;
 let user = null;
+let selectedTravelDate = null;   // ← NEW: user-picked date
 
 const FARE = 50; // Fare per seat
 
@@ -22,12 +23,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const tripId = params.get('tripId');
 
+    // ---------- Read user-picked date (from URL or localStorage) ----------
+    selectedTravelDate = params.get('date') || null;
+    if (!selectedTravelDate) {
+        try {
+            const stored = localStorage.getItem('unibus_selected_trip');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                selectedTravelDate = parsed.date || null;
+            }
+        } catch (err) {
+            console.warn('Could not read stored trip date:', err);
+        }
+    }
+
     if (!tripId) {
         // Maybe from localStorage
         const stored = localStorage.getItem('unibus_selected_trip');
         if (stored) {
             const parsed = JSON.parse(stored);
-            window.location.href = `/student/seat-selection.html?tripId=${parsed.tripId}`;
+            window.location.href = `/student/seat-selection.html?tripId=${parsed.tripId}${parsed.date ? `&date=${parsed.date}` : ''}`;
             return;
         }
         showToast('error', 'No trip selected', 'Please choose a bus first.');
@@ -90,7 +105,8 @@ async function checkAuth() {
             return null;
         }
         return data.user;
-    } catch {
+    } catch (err) {
+        console.error('Auth check failed:', err);
         window.location.href = '/login.html';
         return null;
     }
@@ -136,15 +152,35 @@ async function loadSeats(tripId) {
 }
 
 /* =====================================================
+   DATE HELPERS
+===================================================== */
+// Returns the user-picked travel date as YYYY-MM-DD
+function getTravelDate() {
+    if (selectedTravelDate) return selectedTravelDate;
+    if (currentTrip?.date) {
+        // Fall back to trip's stored date
+        const d = new Date(currentTrip.date);
+        if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+}
+
+// Pretty display: "21 Sep 2026"
+function formatTravelDate() {
+    const iso = getTravelDate();
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/* =====================================================
    RENDER TRIP SUMMARY
 ===================================================== */
 function renderTripSummary() {
     const t = currentTrip;
     const busNum = t.bus?.busNumber || 'Bus';
     const route = t.route?.name || 'Campus Route';
-    const date = t.date ? new Date(t.date).toLocaleDateString('en-US', {
-        day: 'numeric', month: 'short', year: 'numeric'
-    }) : 'Today';
+    const date = formatTravelDate();
 
     document.getElementById('tripSummary').innerHTML = `
         <div class="trip-summary-grid">
@@ -184,15 +220,12 @@ function renderSeatGrid() {
         return;
     }
 
-    // 4 seats per row (2 left, 2 right, aisle in middle)
-    // Layout: [L1] [L2] [aisle] [R1] [R2]
     const takenSet = new Set(taken.map(String));
     let html = '';
 
     const rows = Math.ceil(capacity / 4);
 
     for (let r = 0; r < rows; r++) {
-        // Left side seats
         const left1 = r * 4 + 1;
         const left2 = r * 4 + 2;
         const right1 = r * 4 + 3;
@@ -201,7 +234,6 @@ function renderSeatGrid() {
         html += seatCell(left1, takenSet, capacity);
         html += seatCell(left2, takenSet, capacity);
 
-        // Aisle gap
         html += `<div class="seat-aisle"></div>`;
 
         html += seatCell(right1, takenSet, capacity);
@@ -210,7 +242,6 @@ function renderSeatGrid() {
 
     grid.innerHTML = html;
 
-    // Attach click handlers
     grid.querySelectorAll('.seat:not(.taken)').forEach((seatEl) => {
         seatEl.addEventListener('click', () => selectSeat(seatEl));
     });
@@ -238,7 +269,6 @@ function seatCell(num, takenSet, capacity) {
 function selectSeat(el) {
     const seatNum = el.dataset.seat;
 
-    // If clicking the already-selected seat → deselect
     if (selectedSeat === seatNum) {
         el.classList.remove('selected');
         selectedSeat = null;
@@ -247,10 +277,8 @@ function selectSeat(el) {
         return;
     }
 
-    // Deselect previous
     document.querySelectorAll('.seat.selected').forEach((s) => s.classList.remove('selected'));
 
-    // Select this one
     el.classList.add('selected');
     selectedSeat = seatNum;
     updateConfirmBtn();
@@ -271,9 +299,7 @@ function renderPanel() {
 
     document.getElementById('panelBus').textContent = t.bus?.busNumber || '—';
     document.getElementById('panelRoute').textContent = t.route?.name || '—';
-    document.getElementById('panelDate').textContent = t.date
-        ? new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-        : 'Today';
+    document.getElementById('panelDate').textContent = formatTravelDate();
     document.getElementById('panelDeparture').textContent = formatTime(t.departureTime);
     document.getElementById('panelDirection').textContent = (t.direction || 'outbound');
     document.getElementById('panelSeat').textContent = selectedSeat ? `Seat ${selectedSeat}` : 'None';
@@ -288,9 +314,7 @@ function openConfirmModal() {
 
     document.getElementById('confirmSeat').textContent = `Seat ${selectedSeat}`;
     document.getElementById('confirmBus').textContent = currentTrip?.bus?.busNumber || 'the bus';
-    document.getElementById('confirmDate').textContent = currentTrip?.date
-        ? new Date(currentTrip.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-        : 'today';
+    document.getElementById('confirmDate').textContent = formatTravelDate();
 
     document.getElementById('confirmModal').classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -314,6 +338,8 @@ async function createBooking() {
 
     try {
         const tripId = currentTrip._id;
+        const travelDate = getTravelDate();   // ← send the user-picked date
+
         const res = await fetch('/api/bookings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -321,6 +347,7 @@ async function createBooking() {
             body: JSON.stringify({
                 tripId,
                 seatNumber: selectedSeat,
+                travelDate,                     // ← NEW
                 pickupStop: currentTrip.route?.stops?.[0] || null,
                 dropoffStop: currentTrip.route?.stops?.[currentTrip.route.stops.length - 1] || null,
             }),
@@ -331,13 +358,13 @@ async function createBooking() {
 
         closeConfirmModal();
 
-        // Show success modal
+        // Clear stored selection after successful booking
+        localStorage.removeItem('unibus_selected_trip');
+
         showSuccess(data.data);
     } catch (err) {
-        // Check if seat was taken
         if (err.message.toLowerCase().includes('seat') && err.message.toLowerCase().includes('book')) {
             showToast('error', 'Seat just taken', 'Please choose another seat.');
-            // Refresh seats
             await loadSeats(currentTrip._id);
             selectedSeat = null;
             updateConfirmBtn();
@@ -360,7 +387,7 @@ function showSuccess(booking) {
         <div class="row"><span>Booking ID</span><strong>${escapeHtml(booking.bookingId || '—')}</strong></div>
         <div class="row"><span>Bus</span><strong>${escapeHtml(t.bus?.busNumber || '')}</strong></div>
         <div class="row"><span>Seat</span><strong>${escapeHtml(booking.seatNumber)}</strong></div>
-        <div class="row"><span>Date</span><strong>${t.date ? new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Today'}</strong></div>
+        <div class="row"><span>Date</span><strong>${escapeHtml(booking.travelDate ? new Date(booking.travelDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : formatTravelDate())}</strong></div>
         <div class="row"><span>Departure</span><strong>${formatTime(t.departureTime)}</strong></div>
     `;
     document.getElementById('successModal').classList.add('active');
@@ -376,7 +403,7 @@ function showToast(type, title, message = '') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
-        <i class="fas ${icons[type]}"></i>
+        <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
         <div class="toast-content">
             <h5>${escapeHtml(title)}</h5>
             ${message ? `<p>${escapeHtml(message)}</p>` : ''}
