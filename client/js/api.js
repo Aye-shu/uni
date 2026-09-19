@@ -10,14 +10,25 @@ const API_BASE =
 // Make it available globally
 window.API_BASE = API_BASE;
 
-// Patch fetch so any relative /api/... call goes to Render
+// Patch fetch so any relative /api/... call goes to the API host
 const originalFetch = window.fetch.bind(window);
+
 window.fetch = function (input, init) {
-  if (typeof input === "string" && input.startsWith("/api/")) {
-    input = API_BASE + input;
-  } else if (input instanceof Request && input.url.startsWith("/api/")) {
-    input = new Request(API_BASE + new URL(input.url, window.location.origin).pathname + new URL(input.url, window.location.origin).search, input);
+  // Handle string URLs only — that's all this project uses.
+  if (typeof input === "string") {
+    try {
+      const parsed = new URL(input, window.location.origin);
+      if (
+        parsed.pathname.startsWith("/api/") &&
+        !parsed.href.startsWith(API_BASE)
+      ) {
+        input = API_BASE + parsed.pathname + parsed.search;
+      }
+    } catch {
+      // Not a parseable URL — pass through untouched
+    }
   }
+
   return originalFetch(input, init);
 };
 
