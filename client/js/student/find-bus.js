@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dateInput = document.getElementById('filterDate');
     const today = new Date().toISOString().split('T')[0];
     dateInput.value = today;
-    dateInput.min = today;
+    //dateInput.min = today;
 
     // ---------- Sidebar toggle ----------
     const menuToggle = document.getElementById('menuToggle');
