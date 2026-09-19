@@ -39,7 +39,15 @@ export const getBookingById = async (req, res) => {
 // POST /api/bookings
 export const createBooking = async (req, res) => {
   try {
-    const { tripId, seatNumber, pickupStop, dropoffStop, isReturn = false, originalBooking } = req.body;
+    const {
+      tripId,
+      seatNumber,
+      pickupStop,
+      dropoffStop,
+      travelDate,                    // user-picked date
+      isReturn = false,
+      originalBooking,
+    } = req.body;
 
     const trip = await Trip.findById(tripId);
     if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
@@ -50,6 +58,15 @@ export const createBooking = async (req, res) => {
 
     const seatTaken = await Booking.findOne({ trip: tripId, seatNumber, status: "confirmed" });
     if (seatTaken) return res.status(400).json({ success: false, message: "Seat already booked" });
+
+    // Use user-picked date; fall back to trip.date if missing/invalid
+    let finalTravelDate = trip.date;
+    if (travelDate) {
+      const parsed = new Date(travelDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        finalTravelDate = parsed;
+      }
+    }
 
     const bookingId = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
@@ -62,7 +79,7 @@ export const createBooking = async (req, res) => {
       pickupStop,
       dropoffStop,
       seatNumber,
-      travelDate: trip.date,
+      travelDate: finalTravelDate,
       isReturn,
       originalBooking: originalBooking || null,
       fare: 50,

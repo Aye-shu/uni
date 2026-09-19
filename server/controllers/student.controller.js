@@ -1,53 +1,103 @@
-// server/controllers/booking.controller.js
-import Booking from "../models/Booking.js";
+// server/controllers/student.controller.js
+import ClassSchedule from "../models/ClassSchedule.js";
 import Trip from "../models/Trip.js";
+import Booking from "../models/Booking.js";
+import Bus from "../models/Bus.js";
 
-// GET /api/bookings — list all bookings (admin) or user's own (student)
-export const getAllBookings = async (req, res) => {
+// ---------- CLASS SCHEDULE ----------
+export const getClasses = async (req, res) => {
   try {
-    const filter = req.user.role === "admin" ? {} : { student: req.user.id };
-    const bookings = await Booking.find(filter)
-      .populate("trip")
-      .populate("bus")
-      .populate("route")
-      .sort({ createdAt: -1 });
-    res.json({ success: true, data: bookings });
+    const classes = await ClassSchedule.find({ student: req.user.id });
+    res.json({ success: true, data: classes });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// GET /api/bookings/:id
-export const getBookingById = async (req, res) => {
+export const addClass = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id)
-      .populate("trip")
-      .populate("bus")
-      .populate("route")
-      .populate("pickupStop")
-      .populate("dropoffStop");
-    if (!booking)
-      return res.status(404).json({ success: false, message: "Booking not found" });
-    if (req.user.role !== "admin" && booking.student !== req.user.id)
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    res.json({ success: true, data: booking });
+    const newClass = await ClassSchedule.create({
+      ...req.body,
+      student: req.user.id,
+    });
+    res.status(201).json({ success: true, data: newClass });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// POST /api/bookings
-export const createBooking = async (req, res) => {
+export const updateClass = async (req, res) => {
   try {
-    const {
-      tripId,
-      seatNumber,
-      pickupStop,
-      dropoffStop,
-      travelDate,                    // user-picked date
-      isReturn = false,
-      originalBooking,
-    } = req.body;
+    const updated = await ClassSchedule.findOneAndUpdate(
+      { _id: req.params.id, student: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: "Class not found" });
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const deleteClass = async (req, res) => {
+  try {
+    const deleted = await ClassSchedule.findOneAndDelete({
+      _id: req.params.id,
+      student: req.user.id,
+    });
+    if (!deleted) return res.status(404).json({ success: false, message: "Class not found" });
+    res.json({ success: true, message: "Class deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ---------- FIND BUS / RECOMMENDATION ----------
+export const findBuses = async (req, res) => {
+  try {
+    const { day, endTime, direction = "outbound", date } = req.body;
+
+    // Validate input
+    if (!day || !endTime) {
+      return res.status(400).json({ success: false, message: "day and endTime are required" });
+    }
+
+    // Find all scheduled trips for that day & direction
+    const trips = await Trip.find({
+      day,
+      direction,
+      status: { $in: ["scheduled", "delayed"] },
+    })
+      .populate("bus")
+      .populate("route")
+      .sort({ departureTime: 1 });
+
+    // Recommend trips whose departure is after class ends
+    const recommendations = trips
+      .filter((t) => t.availableSeats > 0 && t.departureTime >= endTime)
+      .map((t) => ({
+        ...t.toObject(),
+        isRecommended: t.departureTime ===
+          trips
+            .filter((x) => x.availableSeats > 0 && x.departureTime >= endTime)
+            .sort((a, b) => a.departureTime.localeCompare(b.departureTime))[0]?.departureTime,
+      }));
+
+    res.json({
+      success: true,
+      data: recommendations,
+      recommendation: recommendations[0] || null,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ---------- BOOKINGS ----------
+export const bookSeat = async (req, res) => {
+  try {
+    const { tripId, seatNumber, pickupStop, dropoffStop, isReturn = false, originalBooking } = req.body;
 
     const trip = await Trip.findById(tripId);
     if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
@@ -56,17 +106,14 @@ export const createBooking = async (req, res) => {
     if (trip.availableSeats <= 0)
       return res.status(400).json({ success: false, message: "No seats available" });
 
-    const seatTaken = await Booking.findOne({ trip: tripId, seatNumber, status: "confirmed" });
-    if (seatTaken) return res.status(400).json({ success: false, message: "Seat already booked" });
-
-    // Use user-picked date; fall back to trip.date if missing/invalid
-    let finalTravelDate = trip.date;
-    if (travelDate) {
-      const parsed = new Date(travelDate);
-      if (!Number.isNaN(parsed.getTime())) {
-        finalTravelDate = parsed;
-      }
-    }
+    // Check seat not already booked
+    const seatTaken = await Booking.findOne({
+      trip: tripId,
+      seatNumber,
+      status: "confirmed",
+    });
+    if (seatTaken)
+      return res.status(400).json({ success: false, message: "Seat already booked" });
 
     const bookingId = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
@@ -79,13 +126,14 @@ export const createBooking = async (req, res) => {
       pickupStop,
       dropoffStop,
       seatNumber,
-      travelDate: finalTravelDate,
+      travelDate: trip.date,
       isReturn,
       originalBooking: originalBooking || null,
       fare: 50,
       status: "confirmed",
     });
 
+    // Update trip seats + bookings
     trip.bookings.push(booking._id);
     trip.availableSeats -= 1;
     await trip.save();
@@ -96,31 +144,40 @@ export const createBooking = async (req, res) => {
   }
 };
 
-// PUT /api/bookings/:id — update booking (rare, mostly status changes)
-export const updateBooking = async (req, res) => {
+export const getBookings = async (req, res) => {
   try {
-    const booking = await Booking.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!booking)
-      return res.status(404).json({ success: false, message: "Booking not found" });
+    const bookings = await Booking.find({ student: req.user.id })
+      .populate("trip")
+      .populate("bus")
+      .populate("route")
+      .populate("pickupStop")
+      .populate("dropoffStop")
+      .sort({ createdAt: -1 });
+    res.json({ success: true, data: bookings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getBookingDetails = async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ _id: req.params.id, student: req.user.id })
+      .populate("trip")
+      .populate("bus")
+      .populate("route")
+      .populate("pickupStop")
+      .populate("dropoffStop");
+    if (!booking) return res.status(404).json({ success: false, message: "Not found" });
     res.json({ success: true, data: booking });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// PUT /api/bookings/:id/cancel
 export const cancelBooking = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
-    if (!booking)
-      return res.status(404).json({ success: false, message: "Booking not found" });
-
-    if (req.user.role !== "admin" && booking.student !== req.user.id)
-      return res.status(403).json({ success: false, message: "Forbidden" });
-
+    const booking = await Booking.findOne({ _id: req.params.id, student: req.user.id });
+    if (!booking) return res.status(404).json({ success: false, message: "Not found" });
     if (booking.status === "cancelled")
       return res.status(400).json({ success: false, message: "Already cancelled" });
 
@@ -132,9 +189,7 @@ export const cancelBooking = async (req, res) => {
     const trip = await Trip.findById(booking.trip);
     if (trip) {
       trip.availableSeats += 1;
-      trip.bookings = trip.bookings.filter(
-        (id) => id.toString() !== booking._id.toString()
-      );
+      trip.bookings = trip.bookings.filter((id) => id.toString() !== booking._id.toString());
       await trip.save();
     }
 
@@ -144,12 +199,7 @@ export const cancelBooking = async (req, res) => {
   }
 };
 
-// DELETE /api/bookings/:id (admin only)
-export const deleteBooking = async (req, res) => {
-  try {
-    await Booking.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Booking deleted" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+export const bookReturnTrip = async (req, res) => {
+  req.body.isReturn = true;
+  return bookSeat(req, res);
 };
