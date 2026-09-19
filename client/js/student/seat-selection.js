@@ -172,17 +172,19 @@ function formatTravelDate() {
 
 /* =====================================================
    STOP ID HELPER
-   Route stops may be full objects, subdocs, or IDs.
-   Always return a plain 24-char hex string (or null).
+   Only returns a valid 24-char hex string, otherwise null.
 ===================================================== */
 function extractStopId(stop) {
     if (!stop) return null;
-    if (typeof stop === 'string') return stop;
-    if (typeof stop === 'object') {
-        if (stop._id) return String(stop._id);
-        if (stop.id) return String(stop.id);
-    }
-    return null;
+
+    let id = null;
+    if (typeof stop === 'string') id = stop;
+    else if (typeof stop === 'object') id = stop._id || stop.id || null;
+
+    if (!id) return null;
+
+    const str = String(id);
+    return /^[a-fA-F0-9]{24}$/.test(str) ? str : null;
 }
 
 function getPickupStopId() {
@@ -362,7 +364,7 @@ async function createBooking() {
         const tripId = currentTrip._id;
         const travelDate = getTravelDate();
 
-        // Extract only the stop IDs — never send whole stop objects
+        // Extract only stop IDs (or null)
         const pickupStopId  = getPickupStopId();
         const dropoffStopId = getDropoffStopId();
 
