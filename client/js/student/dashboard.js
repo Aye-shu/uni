@@ -237,7 +237,19 @@ function renderUpcomingBookings(bookings) {
 ===================================================== */
 function renderNotifications(notifications) {
     const container = document.getElementById('notificationsList');
+    const badge = document.getElementById('notifBadge');
     const recent = notifications.slice(0, 5);
+
+    // ✅ Update badge FIRST — even when list is empty
+    const unread = notifications.filter(n => !n.isRead).length;
+    if (badge) {
+        if (unread > 0) {
+            badge.textContent = unread;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
 
     if (recent.length === 0) {
         container.innerHTML = `
@@ -250,10 +262,10 @@ function renderNotifications(notifications) {
 
     const iconMap = {
         booking: { icon: 'fa-ticket-alt', class: 'booking' },
-        delay: { icon: 'fa-exclamation-triangle', class: 'delay' },
-        trip: { icon: 'fa-bus', class: 'trip' },
+        delay:   { icon: 'fa-exclamation-triangle', class: 'delay' },
+        trip:    { icon: 'fa-bus', class: 'trip' },
         general: { icon: 'fa-info-circle', class: 'general' },
-        alert: { icon: 'fa-bell', class: 'delay' },
+        alert:   { icon: 'fa-bell', class: 'delay' },
     };
 
     container.innerHTML = recent.map(n => {
@@ -271,15 +283,6 @@ function renderNotifications(notifications) {
             </div>
         `;
     }).join('');
-
-    const unread = notifications.filter(n => !n.isRead).length;
-    const badge = document.getElementById('notifBadge');
-    if (unread > 0) {
-        badge.textContent = unread;
-        badge.style.display = 'block';
-    } else {
-        badge.style.display = 'none';
-    }
 }
 
 /* =====================================================
