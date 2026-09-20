@@ -81,29 +81,43 @@ async function checkAuth() {
 }
 
 /* =====================================================
-   LOAD PROFILE
+   LOAD PROFILE — reads fresh from DB, falls back to session
 ===================================================== */
 async function loadProfile() {
     try {
-        const res = await fetch('/api/auth/get-session', { credentials: 'include' });
-        const data = await res.json();
-        const u = data.user || {};
+        let u = null;
+
+        // Try fresh DB data first
+        try {
+            const res = await fetch('/api/student/profile', { credentials: 'include' });
+            if (res.ok) {
+                const data = await res.json();
+                u = data.data || null;
+            }
+        } catch { /* fall through */ }
+
+        // Fall back to session data
+        if (!u) {
+            const res = await fetch('/api/auth/get-session', { credentials: 'include' });
+            const data = await res.json();
+            u = data.user || {};
+        }
 
         profile = {
-            name: u.name || '',
-            email: u.email || '',
-            studentId: u.studentId || '—',
+            name:       u.name       || '',
+            email:      u.email      || '',
+            studentId:  u.studentId  || '—',
             department: u.department || '—',
-            year: u.year || '',
-            phone: u.phone || '',
-            address: u.address || '',
-            role: u.role || 'student',
-            createdAt: u.createdAt || null,
+            year:       u.year       || '',
+            phone:      u.phone      || '',
+            address:    u.address    || '',
+            role:       u.role       || 'student',
+            createdAt:  u.createdAt  || null,
         };
 
         renderProfile();
 
-        // Load stats in parallel
+        // Load stats + preferences in parallel
         loadStats();
         loadPreferences();
     } catch (err) {
@@ -118,12 +132,10 @@ async function loadProfile() {
 function renderProfile() {
     const p = profile;
 
-    // Avatar initials
     const initials = getInitials(p.name);
     document.getElementById('profileAvatar').textContent = initials;
     document.getElementById('userAvatar').textContent = initials.charAt(0);
 
-    // Header
     document.getElementById('headerName').textContent = p.name || 'Student';
     document.getElementById('headerStudentId').innerHTML =
         `<i class="fas fa-id-card"></i> ${escapeHtml(p.studentId || '—')}`;
@@ -131,16 +143,14 @@ function renderProfile() {
         `<i class="fas fa-envelope"></i> ${escapeHtml(p.email || '—')}`;
     document.getElementById('headerRole').textContent = capitalize(p.role);
 
-    // Personal form
-    document.getElementById('fullName').value = p.name || '';
-    document.getElementById('email').value = p.email || '';
-    document.getElementById('studentId').value = p.studentId || '';
-    document.getElementById('department').value = p.department || '';
-    document.getElementById('year').value = p.year || '';
-    document.getElementById('phone').value = p.phone || '';
-    document.getElementById('address').value = p.address || '';
+    document.getElementById('fullName').value    = p.name       || '';
+    document.getElementById('email').value       = p.email      || '';
+    document.getElementById('studentId').value   = p.studentId  || '';
+    document.getElementById('department').value  = p.department || '';
+    document.getElementById('year').value        = p.year       || '';
+    document.getElementById('phone').value       = p.phone      || '';
+    document.getElementById('address').value     = p.address    || '';
 
-    // Member since
     if (p.createdAt) {
         const d = new Date(p.createdAt);
         document.getElementById('statSince').textContent =
@@ -171,7 +181,7 @@ async function loadStats() {
             if (b.status !== 'confirmed') return false;
             if (!b.travelDate) return true;
             const t = new Date(b.travelDate);
-            const today = new Date(); today.setHours(0,0,0,0);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
             return t >= today;
         }).length;
 
@@ -183,7 +193,7 @@ async function loadStats() {
 }
 
 /* =====================================================
-   LOAD PREFERENCES (best-effort)
+   LOAD PREFERENCES
 ===================================================== */
 async function loadPreferences() {
     try {
@@ -225,7 +235,6 @@ function toggleEdit() {
 }
 
 function cancelEdit() {
-    // Reset to original values
     document.getElementById('year').value = profile.year || '';
     document.getElementById('phone').value = profile.phone || '';
     document.getElementById('address').value = profile.address || '';
@@ -261,10 +270,17 @@ async function savePersonal(e) {
             throw new Error(data.message || 'Update failed');
         }
 
-        // Update local
+        // Update local state
         profile.year = year;
         profile.phone = phone;
         profile.address = address;
+
+        // Update session cache so other pages reflect it too
+        if (user) {
+            user.year = year;
+            user.phone = phone;
+            user.address = address;
+        }
 
         toggleEdit();
         showToast('success', 'Profile updated', 'Your changes have been saved.');
@@ -288,7 +304,6 @@ async function savePassword(e) {
 
     clearPwErrors();
 
-    // Validate
     let hasErr = false;
     if (!currentPassword) { setPwError('currentPassword', 'Current password is required'); hasErr = true; }
     if (!newPassword) { setPwError('newPassword', 'New password is required'); hasErr = true; }
@@ -310,10 +325,7 @@ async function savePassword(e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({
-                currentPassword,
-                newPassword,
-            }),
+            body: JSON.stringify({ currentPassword, newPassword }),
         });
 
         if (!res.ok) {
@@ -364,7 +376,7 @@ window.togglePw = function (fieldId, btn) {
 
 /* =====================================================
    SAVE PREFERENCES
-   ===================================================== */
+===================================================== */
 async function savePreferences(e) {
     e.preventDefault();
 
@@ -382,7 +394,7 @@ async function savePreferences(e) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ email, sms, push }),
+            body: JSON.stringify({ preferences: { email, sms, push } }),
         });
 
         if (!res.ok) {
@@ -392,8 +404,7 @@ async function savePreferences(e) {
 
         showToast('success', 'Preferences saved', 'Your notification settings have been updated.');
     } catch (err) {
-        // Still show success — endpoint may not exist yet (MVP)
-        showToast('info', 'Saved locally', 'Preferences will sync when the feature is available.');
+        showToast('error', 'Save failed', err.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
@@ -405,6 +416,7 @@ async function savePreferences(e) {
 ===================================================== */
 function showToast(type, title, message = '') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
     const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
