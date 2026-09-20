@@ -5,12 +5,13 @@
 let fleetMap = null;
 let fleetMarkers = [];
 let user = null;
+let socket = null;                  // NEW
+let liveAlerts = [];                // NEW
 
 document.addEventListener('DOMContentLoaded', async () => {
     user = await checkAuth();
     if (!user) return;
 
-    // Populate user info
     document.getElementById('userName').textContent = user.name || 'Admin';
     document.getElementById('userRole').textContent = user.role || 'admin';
     document.getElementById('userAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
@@ -30,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAPI('/api/trips'),
     ]);
 
-    // ---------- Update stat cards ----------
     const busList = buses?.data || [];
     const routeList = routes?.data || [];
     const userList = users?.data || [];
@@ -52,16 +52,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('welcomeSummary').textContent =
         `${liveTrips} active trip${liveTrips !== 1 ? 's' : ''}, ${delayedTrips} delay${delayedTrips !== 1 ? 's' : ''} reported.`;
 
-    // ---------- Fleet map ----------
     initFleetMap(busList);
-
-    // ---------- Fleet table ----------
     renderFleetTable(busList);
-
-    // ---------- Alerts ----------
     renderAlerts(tripList, delayedTrips);
 
-    // ---------- Sidebar toggle ----------
+    // Sidebar toggle
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
     menuToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
@@ -74,11 +69,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ---------- Logout ----------
+    // Logout
     document.getElementById('logoutBtn')?.addEventListener('click', async () => {
         try { await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }); } catch {}
         window.location.href = '/login.html';
     });
+
+    // NEW: socket
+    initSocket();
 });
 
 /* =====================================================
@@ -134,7 +132,6 @@ function initFleetMap(buses) {
         attribution: '© OpenStreetMap · © CARTO',
     }).addTo(fleetMap);
 
-    // Plot live buses
     const liveBuses = buses.filter(b => b.isLive && b.currentLocation?.latitude);
 
     if (liveBuses.length === 0) {
@@ -164,14 +161,12 @@ function initFleetMap(buses) {
             fleetMarkers.push(marker);
         });
 
-        // Fit map bounds
         if (fleetMarkers.length > 0) {
             const group = L.featureGroup(fleetMarkers);
             fleetMap.fitBounds(group.getBounds().pad(0.15));
         }
     }
 
-    // If no live buses, still plot a placeholder in Dhaka center
     if (liveBuses.length === 0 && buses.length > 0) {
         const firstBus = buses[0];
         if (firstBus.currentLocation?.latitude) {
@@ -244,14 +239,13 @@ function determineStatus(bus) {
 }
 
 /* =====================================================
-   ALERTS
+   ALERTS (NEW: prepend live socket alerts)
 ===================================================== */
 function renderAlerts(trips, delayedCount) {
     const container = document.getElementById('alertsList');
 
-    const alerts = [];
+    const alerts = [...liveAlerts];
 
-    // Delayed trips
     trips.filter(t => t.status === 'delayed').slice(0, 3).forEach(trip => {
         alerts.push({
             icon: 'fa-exclamation-triangle',
@@ -262,7 +256,6 @@ function renderAlerts(trips, delayedCount) {
         });
     });
 
-    // Live trips
     trips.filter(t => t.status === 'in-progress').slice(0, 2).forEach(trip => {
         alerts.push({
             icon: 'fa-bus',
@@ -282,7 +275,7 @@ function renderAlerts(trips, delayedCount) {
         return;
     }
 
-    container.innerHTML = alerts.slice(0, 5).map(a => `
+    container.innerHTML = alerts.slice(0, 8).map(a => `
         <div class="alert-item">
             <div class="alert-icon ${a.cls}">
                 <i class="fas ${a.icon}"></i>
@@ -294,6 +287,56 @@ function renderAlerts(trips, delayedCount) {
             </div>
         </div>
     `).join('');
+}
+
+/* =====================================================
+   SOCKET (NEW)
+===================================================== */
+function initSocket() {
+    if (typeof io === 'undefined') return;
+    try {
+        socket = io({ withCredentials: true });
+
+        socket.on('connect', () => {
+            console.log('🔌 Admin socket connected');
+            socket.emit('join-admin-room');
+            if (user?.id) socket.emit('join-user', user.id);
+        });
+
+        socket.on('disconnect', () => console.log('🔌 Admin socket disconnected'));
+
+        socket.on('new-notification', (data) => {
+            console.log('🔔 New notification:', data);
+            liveAlerts.unshift({
+                icon: 'fa-bell',
+                cls: 'delay',
+                title: data.title || 'Notification',
+                message: data.message || '',
+                time: new Date(),
+            });
+            renderAlerts([], 0);
+            showToast('info', data.title || 'Notification', data.message || '');
+        });
+
+        socket.on('admin-driver-report', (data) => {
+            console.log('📢 Report received:', data);
+            liveAlerts.unshift({
+                icon: 'fa-exclamation-triangle',
+                cls: 'delay',
+                title: `Report: ${data.issueType || 'Issue'}`,
+                message: data.description || 'A student/driver reported an issue.',
+                time: new Date(),
+            });
+            renderAlerts([], 0);
+            showToast('error', `New report: ${data.issueType || 'Issue'}`, data.description || '');
+        });
+
+        socket.on('admin-trip-update', (data) => {
+            console.log('🚌 Trip update:', data);
+        });
+    } catch (err) {
+        console.warn('Socket init failed:', err);
+    }
 }
 
 /* =====================================================
@@ -318,3 +361,28 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 }
+
+function showToast(type, title, message = '') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${icons[type]}"></i>
+        <div class="toast-content">
+            <h5>${escapeHtml(title)}</h5>
+            ${message ? `<p>${escapeHtml(message)}</p>` : ''}
+        </div>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(40px)';
+        toast.style.transition = '0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+window.addEventListener('beforeunload', () => {
+    if (socket) { try { socket.disconnect(); } catch {} }
+});

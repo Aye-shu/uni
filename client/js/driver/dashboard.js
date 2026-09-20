@@ -9,6 +9,7 @@ let allBuses = [];
 let allRoutes = [];
 let driverProfile = null;
 let activeTripId = null;
+let liveNotifications = [];   // NEW
 
 // GPS broadcasting state
 let gpsWatchId = null;
@@ -67,8 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load data
     await Promise.all([loadBuses(), loadRoutes(), loadMyTrips()]);
-    renderNotifications();
     initSocket();
+    await loadNotifications();     // NEW
     restoreGpsState();
 
     // Update greeting
@@ -129,14 +130,12 @@ async function loadMyTrips() {
         const data = await res.json();
         const all = data.data || [];
 
-        // Filter: today's trips where driver matches
         const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
         const myTrips = all.filter(t =>
             idsMatch(t.driver, user.id) &&
             (t.day === todayName || !t.day)
         );
 
-        // If driver has no trips assigned, show a friendly message
         allTrips = myTrips;
         console.log('✅ My trips today:', allTrips.length);
 
@@ -148,6 +147,81 @@ async function loadMyTrips() {
         renderTrips();
         updateStats();
     }
+}
+
+/* =====================================================
+   NOTIFICATIONS (NEW)
+===================================================== */
+async function loadNotifications() {
+    try {
+        const res = await fetch('/api/notifications', { credentials: 'include' });
+        const data = await res.json();
+        liveNotifications = (data.data || []).slice(0, 20);
+    } catch {
+        liveNotifications = [];
+    }
+    renderNotifications();
+}
+
+function renderNotifications() {
+    const container = document.getElementById('notificationsList');
+    if (!container) return;
+
+    // Build items: server notifications + trip booking hints
+    const items = [...liveNotifications];
+
+    // Add booking-count hints from trips
+    allTrips.forEach(trip => {
+        const bus = allBuses.find(b => idsMatch(b._id, trip.bus?._id || trip.bus));
+        const capacity = bus?.capacity || 40;
+        const booked = capacity - (trip.availableSeats || 0);
+        if (booked > 0) {
+            items.push({
+                title: `${booked} passenger${booked !== 1 ? 's' : ''} on TR-${trip._id.slice(-6).toUpperCase()}`,
+                message: `Departure ${formatTime(trip.departureTime)}`,
+                type: 'booking',
+                createdAt: trip.updatedAt || trip.createdAt,
+            });
+        }
+    });
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="padding:30px 20px;">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = items.slice(0, 8).map(n => {
+        const iconMap = {
+            alert: 'fa-exclamation-triangle',
+            booking: 'fa-ticket-alt',
+            trip: 'fa-bus',
+            delay: 'fa-clock',
+            general: 'fa-bell',
+        };
+        const clsMap = {
+            alert: 'alert',
+            booking: 'booking',
+            trip: 'trip',
+            delay: 'delay',
+            general: 'general',
+        };
+        const icon = iconMap[n.type] || 'fa-bell';
+        const cls = clsMap[n.type] || 'general';
+
+        return `
+            <div class="notification-item">
+                <div class="notif-icon ${cls}"><i class="fas ${icon}"></i></div>
+                <div class="notif-content">
+                    <h5>${escapeHtml(n.title || '')}</h5>
+                    <p>${escapeHtml(n.message || '')}</p>
+                    <span class="notif-time">${timeAgo(n.createdAt || new Date())}</span>
+                </div>
+            </div>`;
+    }).join('');
 }
 
 /* =====================================================
@@ -169,9 +243,7 @@ function renderTrips() {
         return;
     }
 
-    // Sort by departure time
     allTrips.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
-
     container.innerHTML = allTrips.map(trip => renderTripCard(trip)).join('');
 }
 
@@ -214,7 +286,6 @@ function renderTripCard(trip) {
             </button>
         `;
     } else {
-        // Scheduled
         actionsHtml = `
             <button class="trip-btn start" onclick="openStartModal('${trip._id}')">
                 <i class="fas fa-play"></i> Start Trip
@@ -336,10 +407,8 @@ async function startTrip() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
 
     try {
-        // Step 1 — Request GPS permission
         const position = await requestGpsPermission();
 
-        // Step 2 — Call backend
         const res = await fetch(`/api/driver/trips/${tripId}/start`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -353,10 +422,8 @@ async function startTrip() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to start trip');
 
-        // Step 3 — Start GPS broadcasting
         startGpsBroadcast(tripId);
 
-        // Step 4 — Update local state
         const idx = allTrips.findIndex(t => t._id === tripId);
         if (idx !== -1) allTrips[idx].status = 'in-progress';
 
@@ -409,7 +476,6 @@ async function endTrip() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ending...';
 
     try {
-        // Stop GPS first
         stopGpsBroadcast();
 
         const res = await fetch(`/api/driver/trips/${tripId}/end`, {
@@ -469,33 +535,23 @@ function requestGpsPermission() {
 
 function startGpsBroadcast(tripId) {
     if (gpsWatchId !== null) stopGpsBroadcast();
-
     updateGpsStatus('active', 'Broadcasting');
 
-    // Watch position continuously
     gpsWatchId = navigator.geolocation.watchPosition(
         (position) => {
             const { latitude, longitude } = position.coords;
             const speed = position.coords.speed || 0;
 
-            // Emit via Socket.io
             if (socket && socket.connected) {
-                socket.emit('update-location', {
-                    tripId,
-                    latitude,
-                    longitude,
-                    speed,
-                });
+                socket.emit('update-location', { tripId, latitude, longitude, speed });
             }
 
-            // Also update via REST (fallback)
             fetch(`/api/tracking/trip/${tripId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ latitude, longitude }),
             }).catch(() => {});
-
         },
         (err) => {
             console.warn('GPS watch error:', err.message);
@@ -526,7 +582,6 @@ function updateGpsStatus(state, text) {
 }
 
 function restoreGpsState() {
-    // If any trip is already in-progress when page loads, resume broadcasting
     const active = allTrips.find(t => t.status === 'in-progress');
     if (active) {
         console.log('Resuming GPS for active trip:', active._id);
@@ -535,61 +590,39 @@ function restoreGpsState() {
 }
 
 /* =====================================================
-   SOCKET
+   SOCKET (NEW: join personal room + listen for notifications)
 ===================================================== */
 function initSocket() {
     if (typeof io === 'undefined') return;
     try {
         socket = io({ withCredentials: true });
-        socket.on('connect', () => console.log('🔌 Driver socket connected'));
+
+        socket.on('connect', () => {
+            console.log('🔌 Driver socket connected');
+            if (user?.id) socket.emit('join-user', user.id);
+        });
+
         socket.on('disconnect', () => console.log('🔌 Driver socket disconnected'));
+
+        // NEW: live notifications
+        socket.on('new-notification', (data) => {
+            console.log('🔔 New notification:', data);
+            liveNotifications.unshift({
+                title: data.title,
+                message: data.message,
+                type: data.type || 'general',
+                createdAt: new Date(),
+            });
+            renderNotifications();
+            showToast('info', data.title || 'New notification', data.message || '');
+        });
+
+        socket.on('driver-report-received', (data) => {
+            console.log('📢 Trip report:', data);
+        });
     } catch (err) {
         console.warn('Socket init failed:', err);
     }
-}
-
-/* =====================================================
-   NOTIFICATIONS (Placeholder)
-===================================================== */
-function renderNotifications() {
-    const container = document.getElementById('notificationsList');
-    const items = [];
-
-    // Build from active bookings today
-    allTrips.forEach(trip => {
-        const bus = allBuses.find(b => idsMatch(b._id, trip.bus?._id || trip.bus));
-        const capacity = bus?.capacity || 40;
-        const booked = capacity - (trip.availableSeats || 0);
-        if (booked > 0) {
-            items.push({
-                icon: 'fa-ticket-alt',
-                cls: 'booking',
-                title: `${booked} passenger${booked !== 1 ? 's' : ''} on TR-${trip._id.slice(-6).toUpperCase()}`,
-                message: `Departure ${formatTime(trip.departureTime)}`,
-                time: trip.updatedAt || trip.createdAt,
-            });
-        }
-    });
-
-    if (items.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="padding:30px 20px;">
-                <i class="fas fa-bell-slash"></i>
-                <p>No notifications yet</p>
-            </div>`;
-        return;
-    }
-
-    container.innerHTML = items.slice(0, 5).map(n => `
-        <div class="notification-item">
-            <div class="notif-icon ${n.cls}"><i class="fas ${n.icon}"></i></div>
-            <div class="notif-content">
-                <h5>${escapeHtml(n.title)}</h5>
-                <p>${escapeHtml(n.message)}</p>
-                <span class="notif-time">${timeAgo(n.time)}</span>
-            </div>
-        </div>
-    `).join('');
 }
 
 /* =====================================================

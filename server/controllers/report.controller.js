@@ -2,6 +2,9 @@
 import DelayReport from "../models/DelayReport.js";
 import Trip from "../models/Trip.js";
 import Booking from "../models/Booking.js";
+import Notification from "../models/Notification.js";
+import User from "../models/User.js";
+import { getIO } from "../config/socket.js";
 
 // POST /api/reports/delay — driver reports a delay
 export const reportDelay = async (req, res) => {
@@ -27,6 +30,34 @@ export const reportDelay = async (req, res) => {
     trip.delayReason = reason;
     await trip.save();
 
+    // Notify admins
+    try {
+      const admins = await User.find({ role: "admin" }).select("_id");
+      const title = `Driver delay report: ${reason || "Delay"}`;
+      const message = `${delayMinutes} min — ${description || "No details"}`;
+
+      const docs = admins.map((a) => ({
+        recipient: String(a._id),
+        title,
+        message,
+        type: "delay",
+        relatedId: report._id,
+      }));
+      if (docs.length) await Notification.insertMany(docs);
+
+      const io = getIO();
+      io.to("admins").emit("admin-driver-report", {
+        tripId: String(trip._id),
+        issueType: reason || "Delay",
+        description,
+        delayMinutes,
+        reportedBy: req.user.id,
+        timestamp: new Date(),
+      });
+    } catch (notifErr) {
+      console.warn("Notification failed:", notifErr.message);
+    }
+
     res.status(201).json({ success: true, data: report });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -50,6 +81,7 @@ export const createReport = async (req, res) => {
       return res.status(404).json({ success: false, message: "Trip not found" });
     }
 
+    // 1. Save the report
     const report = await DelayReport.create({
       trip: tripId,
       driver: trip.driver ? String(trip.driver) : String(req.user.id),
@@ -59,6 +91,69 @@ export const createReport = async (req, res) => {
       delayMinutes: Number(delayMinutes) || 0,
       status: "pending",
     });
+
+    // 2. Build notification content
+    const studentName = req.user.name || "A student";
+    const busNumber = trip.bus?.busNumber || "a bus";
+    const notifTitle = `Student report: ${issueType}`;
+    const notifMessage = description
+      ? `${studentName}: ${description}`
+      : `${studentName} reported "${issueType}" on ${busNumber}.`;
+
+    // 3. Notify the DRIVER (if assigned)
+    try {
+      if (trip.driver) {
+        await Notification.create({
+          recipient: String(trip.driver),
+          title: notifTitle,
+          message: notifMessage,
+          type: "alert",
+          relatedId: report._id,
+        });
+      }
+
+      // 4. Notify ALL ADMINS
+      const admins = await User.find({ role: "admin" }).select("_id");
+      if (admins.length) {
+        const adminDocs = admins.map((a) => ({
+          recipient: String(a._id),
+          title: notifTitle,
+          message: notifMessage,
+          type: "alert",
+          relatedId: report._id,
+        }));
+        await Notification.insertMany(adminDocs);
+      }
+
+      // 5. Live socket events
+      const io = getIO();
+
+      if (trip.driver) {
+        io.to(`user-${String(trip.driver)}`).emit("new-notification", {
+          title: notifTitle,
+          message: notifMessage,
+          type: "alert",
+          timestamp: new Date(),
+        });
+      }
+
+      io.to("admins").emit("new-notification", {
+        title: notifTitle,
+        message: notifMessage,
+        type: "alert",
+        timestamp: new Date(),
+      });
+
+      io.to("admins").emit("admin-driver-report", {
+        tripId: String(trip._id),
+        issueType,
+        description,
+        reportedBy: req.user.id,
+        timestamp: new Date(),
+      });
+    } catch (notifErr) {
+      console.warn("Notification/socket failed:", notifErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -86,7 +181,7 @@ export const getAllReports = async (req, res) => {
   }
 };
 
-// GET /api/reports/pending — admin: only pending reports
+// GET /api/reports/pending — admin
 export const getPendingReports = async (req, res) => {
   try {
     const reports = await DelayReport.find({ status: "pending" })
@@ -98,7 +193,7 @@ export const getPendingReports = async (req, res) => {
   }
 };
 
-// PUT /api/reports/:id — admin: update report status
+// PUT /api/reports/:id — admin
 export const updateReportStatus = async (req, res) => {
   try {
     const report = await DelayReport.findByIdAndUpdate(
@@ -113,7 +208,7 @@ export const updateReportStatus = async (req, res) => {
   }
 };
 
-// GET /api/reports/daily — admin: daily booking statistics
+// GET /api/reports/daily — admin
 export const getDailyStats = async (req, res) => {
   try {
     const today = new Date();

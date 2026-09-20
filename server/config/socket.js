@@ -35,6 +35,13 @@ export const initSocket = (server) => {
       console.log(`👨‍💼 ${socket.id} joined admins room`);
     });
 
+    // NEW: any user joins their personal room
+    socket.on("join-user", (userId) => {
+      if (!userId) return;
+      socket.join(`user-${userId}`);
+      console.log(`👤 ${socket.id} joined user-${userId}`);
+    });
+
     socket.on("update-location", (data) => {
       const { tripId, latitude, longitude } = data;
       io.to(`trip-${tripId}`).emit("location-updated", {
