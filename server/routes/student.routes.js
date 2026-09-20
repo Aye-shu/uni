@@ -27,30 +27,27 @@ router.get("/bookings/:id", getBookingDetails);
 router.put("/bookings/:id/cancel", cancelBooking);
 
 /* ============================================================
-   Lookup helper — try ID, then email
+   Helper — get the student's email from the session
 ============================================================ */
-async function findCurrentUser(req) {
+function getEmail(req) {
   const u = req.user || {};
-  const id = u.id || u._id || u.userId || u.user?.id;
-  const email = u.email || u.user?.email;
-
-  if (id) {
-    const byId = await User.findById(id).lean();
-    if (byId) return byId;
-  }
-  if (email) {
-    const byEmail = await User.findOne({ email }).lean();
-    if (byEmail) return byEmail;
-  }
-  return null;
+  const email = u.email || u.user?.email || "";
+  return email.toLowerCase().trim();
 }
 
 /* ==================== GET /profile ==================== */
 router.get("/profile", async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const email = getEmail(req);
+    if (!email) {
+      return res.status(401).json({ success: false, message: "No email in session" });
+    }
+
+    // Bypass Mongoose — use raw collection (String _id safe)
+    const user = await User.collection.findOne({ email });
+
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found", email });
     }
 
     res.json({
@@ -76,9 +73,9 @@ router.get("/profile", async (req, res) => {
 /* ==================== PUT /profile ==================== */
 router.put("/profile", async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+    const email = getEmail(req);
+    if (!email) {
+      return res.status(401).json({ success: false, message: "No email in session" });
     }
 
     const { name, phone, address, department, studentId, year } = req.body;
@@ -90,9 +87,29 @@ router.put("/profile", async (req, res) => {
     if (studentId  !== undefined) updates.studentId  = studentId;
     if (year       !== undefined) updates.year       = year;
 
-    await User.updateOne({ _id: user._id }, { $set: updates });
+    console.log("📝 PUT /profile — email:", email, "| updates:", updates);
 
-    res.json({ success: true, message: "Profile updated" });
+    // Bypass Mongoose entirely — raw collection update
+    const result = await User.collection.updateOne(
+      { email },
+      { $set: updates }
+    );
+
+    console.log("📝 PUT /profile result:", {
+      matched:  result.matchedCount,
+      modified: result.modifiedCount,
+    });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: "User not found", email });
+    }
+
+    res.json({
+      success: true,
+      message: "Profile updated",
+      matched:  result.matchedCount,
+      modified: result.modifiedCount,
+    });
   } catch (err) {
     console.error("PUT student profile error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -102,9 +119,14 @@ router.put("/profile", async (req, res) => {
 /* ==================== GET /preferences ==================== */
 router.get("/preferences", async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const email = getEmail(req);
+    if (!email) {
+      return res.status(401).json({ success: false, message: "No email in session" });
+    }
+
+    const user = await User.collection.findOne({ email });
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found", email });
     }
 
     res.json({
@@ -125,9 +147,9 @@ router.get("/preferences", async (req, res) => {
 /* ==================== PUT /preferences ==================== */
 router.put("/preferences", async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+    const email = getEmail(req);
+    if (!email) {
+      return res.status(401).json({ success: false, message: "No email in session" });
     }
 
     const { year, phone, address, preferences } = req.body;
@@ -137,7 +159,11 @@ router.put("/preferences", async (req, res) => {
     if (address     !== undefined) updates.address     = address;
     if (preferences !== undefined) updates.preferences = preferences;
 
-    await User.updateOne({ _id: user._id }, { $set: updates });
+    const result = await User.collection.updateOne({ email }, { $set: updates });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     res.json({ success: true, message: "Preferences updated" });
   } catch (err) {
