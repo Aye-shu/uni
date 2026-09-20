@@ -7,9 +7,13 @@ import {
   getPendingReports,
   getDailyStats,
   updateReportStatus,
+  createReport,
 } from "../controllers/report.controller.js";
 
 const router = express.Router();
+
+// Student reports an issue (also works for drivers)
+router.post("/", requireAuth, createReport);
 
 // Driver reports delay
 router.post("/delay", requireAuth, authorize("driver"), reportDelay);

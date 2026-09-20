@@ -10,13 +10,13 @@ export const reportDelay = async (req, res) => {
 
     const trip = await Trip.findById(tripId);
     if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
-    if (trip.driver !== req.user.id)
+    if (String(trip.driver) !== String(req.user.id))
       return res.status(403).json({ success: false, message: "Not your trip" });
 
     const report = await DelayReport.create({
       trip: tripId,
-      driver: req.user.id,
-      reportedBy: req.user.id,
+      driver: String(req.user.id),
+      reportedBy: String(req.user.id),
       delayMinutes,
       reason,
       description,
@@ -33,12 +33,52 @@ export const reportDelay = async (req, res) => {
   }
 };
 
+// POST /api/reports — student reports an issue
+export const createReport = async (req, res) => {
+  try {
+    const { tripId, issueType, description, delayMinutes } = req.body;
+
+    if (!tripId || !issueType) {
+      return res.status(400).json({
+        success: false,
+        message: "tripId and issueType are required",
+      });
+    }
+
+    const trip = await Trip.findById(tripId);
+    if (!trip) {
+      return res.status(404).json({ success: false, message: "Trip not found" });
+    }
+
+    const report = await DelayReport.create({
+      trip: tripId,
+      driver: trip.driver ? String(trip.driver) : String(req.user.id),
+      reportedBy: String(req.user.id),
+      reason: issueType,
+      description: description || "",
+      delayMinutes: Number(delayMinutes) || 0,
+      status: "pending",
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: report,
+      message: "Report submitted successfully",
+    });
+  } catch (err) {
+    console.error("createReport error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to submit report",
+    });
+  }
+};
+
 // GET /api/reports — admin: list all delay reports
 export const getAllReports = async (req, res) => {
   try {
     const reports = await DelayReport.find({})
       .populate("trip")
-      .populate("driver", "name email")
       .sort({ createdAt: -1 });
     res.json({ success: true, data: reports });
   } catch (err) {
@@ -51,7 +91,6 @@ export const getPendingReports = async (req, res) => {
   try {
     const reports = await DelayReport.find({ status: "pending" })
       .populate("trip")
-      .populate("driver", "name email")
       .sort({ createdAt: -1 });
     res.json({ success: true, data: reports });
   } catch (err) {
