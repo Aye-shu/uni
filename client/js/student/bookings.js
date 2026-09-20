@@ -429,10 +429,6 @@ window.openDetailsModal = function (bookingId) {
             <span>Seat Number</span>
             <strong>${escapeHtml(String(b.seatNumber || '—'))}</strong>
         </div>
-        <div class="detail-row">
-            <span>Fare</span>
-            <strong>৳ ${b.fare || 50}</strong>
-        </div>
 
         <div class="detail-section-title">Trip Details</div>
         <div class="detail-row">
