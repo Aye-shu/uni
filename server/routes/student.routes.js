@@ -27,16 +27,20 @@ router.get("/bookings/:id", getBookingDetails);
 router.put("/bookings/:id/cancel", cancelBooking);
 
 /* ============================================================
-   Profile + Preferences (fixes 404 on /api/student/preferences)
+   Profile + Preferences — uses User model (String _id, matches Better Auth)
 ============================================================ */
 
 // GET /api/student/preferences
 router.get("/preferences", async (req, res) => {
   try {
+    // User._id is String — no conversion needed
     const user = await User.findById(req.user.id).lean();
+
     if (!user) {
+      console.log("Preferences: user not found for id:", req.user.id);
       return res.status(404).json({ success: false, message: "User not found" });
     }
+
     res.json({
       success: true,
       data: {
