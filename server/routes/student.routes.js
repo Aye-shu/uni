@@ -6,18 +6,18 @@ import {
   findBuses, bookSeat, getBookings, getBookingDetails,
   cancelBooking, bookReturnTrip,
 } from "../controllers/student.controller.js";
-import { MongoClient } from "mongodb";
+import User from "../models/User.js";
 
 const router = express.Router();
 router.use(protect, authorize("student"));
 
-/* ================= Classes ================= */
+/* ==================== Classes ==================== */
 router.get("/classes", getClasses);
 router.post("/classes", addClass);
 router.put("/classes/:id", updateClass);
 router.delete("/classes/:id", deleteClass);
 
-/* ================= Booking ================= */
+/* ==================== Booking ==================== */
 router.post("/find-bus", findBuses);
 router.post("/book", bookSeat);
 router.post("/book/return", bookReturnTrip);
@@ -27,24 +27,16 @@ router.get("/bookings/:id", getBookingDetails);
 router.put("/bookings/:id/cancel", cancelBooking);
 
 /* ============================================================
-   Profile + Preferences (added to fix 404 on /api/student/preferences)
+   Profile + Preferences (fixes 404 on /api/student/preferences)
 ============================================================ */
 
 // GET /api/student/preferences
 router.get("/preferences", async (req, res) => {
   try {
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    const user = await client
-      .db("uni")
-      .collection("user")
-      .findOne({ _id: req.user.id });
-    await client.close();
-
+    const user = await User.findById(req.user.id).lean();
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-
     res.json({
       success: true,
       data: {
@@ -65,19 +57,21 @@ router.put("/preferences", async (req, res) => {
   try {
     const { year, phone, address, preferences } = req.body;
 
-    const updates = { updatedAt: new Date() };
+    const updates = {};
     if (year        !== undefined) updates.year        = year;
     if (phone       !== undefined) updates.phone       = phone;
     if (address     !== undefined) updates.address     = address;
     if (preferences !== undefined) updates.preferences = preferences;
 
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    await client
-      .db("uni")
-      .collection("user")
-      .updateOne({ _id: req.user.id }, { $set: updates });
-    await client.close();
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     res.json({ success: true, message: "Preferences updated" });
   } catch (err) {
@@ -91,7 +85,7 @@ router.put("/profile", async (req, res) => {
   try {
     const { name, phone, address, department, studentId, year } = req.body;
 
-    const updates = { updatedAt: new Date() };
+    const updates = {};
     if (name       !== undefined) updates.name       = name;
     if (phone      !== undefined) updates.phone      = phone;
     if (address    !== undefined) updates.address    = address;
@@ -99,13 +93,15 @@ router.put("/profile", async (req, res) => {
     if (studentId  !== undefined) updates.studentId  = studentId;
     if (year       !== undefined) updates.year       = year;
 
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    await client
-      .db("uni")
-      .collection("user")
-      .updateOne({ _id: req.user.id }, { $set: updates });
-    await client.close();
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     res.json({ success: true, message: "Profile updated" });
   } catch (err) {
