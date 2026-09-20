@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* ======================================================
-       BUS SEARCH DEMO
+       BUS SEARCH — redirect to login or find-bus page
     ====================================================== */
 
     const searchForm =
@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         searchForm.addEventListener(
             "submit",
-            function (event) {
+            async function (event) {
 
                 event.preventDefault();
 
@@ -159,34 +159,116 @@ document.addEventListener("DOMContentLoaded", function () {
                 const direction =
                     tripType &&
                     tripType.value === "return"
-
-                        ? "University → Home"
-
-                        : `${pickup} → ${destination}`;
+                        ? "return"
+                        : "outbound";
 
 
                 formMessage.textContent =
-                    `Demo: Finding the best ${direction} bus around your ${classTime} class.`;
-
+                    "Searching...";
 
                 formMessage.style.color =
                     "#1769ff";
 
 
-                /*
-                    LATER:
+                /* ------------------------------------------
+                   Check if user is logged in
+                ------------------------------------------ */
 
-                    This section will call your
-                    Node.js + Express backend.
+                let loggedIn = false;
+                let userRole = null;
 
-                    Example:
+                try {
 
-                    fetch("/api/trips/search", {
-                        method: "POST",
-                        body: JSON.stringify(...)
-                    });
+                    const res = await fetch(
+                        "/api/auth/get-session",
+                        { credentials: "include" }
+                    );
 
-                */
+                    const data = await res.json();
+
+                    loggedIn = !!data?.user;
+
+                    userRole = data?.user?.role || null;
+
+                } catch (err) {
+
+                    loggedIn = false;
+
+                }
+
+
+                /* ------------------------------------------
+                   Not logged in → redirect to login
+                ------------------------------------------ */
+
+                if (!loggedIn) {
+
+                    formMessage.textContent =
+                        "Redirecting to login...";
+
+                    setTimeout(function () {
+
+                        window.location.href =
+                            "/login.html";
+
+                    }, 500);
+
+                    return;
+
+                }
+
+
+                /* ------------------------------------------
+                   Logged in as student → go to find-bus
+                   with filters pre-applied
+                ------------------------------------------ */
+
+                if (userRole === "student") {
+
+                    const params =
+                        new URLSearchParams({
+                            pickup,
+                            destination,
+                            date,
+                            direction,
+                        });
+
+
+                    window.location.href =
+                        `/student/find-bus.html?${params.toString()}`;
+
+                    return;
+
+                }
+
+
+                /* ------------------------------------------
+                   Logged in as driver/admin → send to their dashboard
+                ------------------------------------------ */
+
+                if (userRole === "driver") {
+
+                    window.location.href =
+                        "/driver/dashboard.html";
+
+                    return;
+
+                }
+
+                if (userRole === "admin") {
+
+                    window.location.href =
+                        "/admin/dashboard.html";
+
+                    return;
+
+                }
+
+
+                /* Fallback */
+
+                window.location.href =
+                    "/login.html";
 
             }
         );
