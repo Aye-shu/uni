@@ -29,6 +29,7 @@ import "./models/DelayReport.js";
 import studentRoutes from "./routes/student.routes.js";
 import driverRoutes  from "./routes/driver.routes.js";
 import adminRoutes   from "./routes/admin.routes.js";
+import adminAuthRoutes from "./routes/admin-auth.routes.js";   // NEW
 
 import bookingRoutes        from "./routes/booking.routes.js";
 import busRoutes            from "./routes/bus.routes.js";
@@ -53,7 +54,7 @@ const server = http.createServer(app);
 
 initSocket(server);
 
-// NEW
+// CORS
 app.use(cors({
   origin: [
     "http://localhost:5000",
@@ -73,20 +74,22 @@ const startServer = async () => {
     const auth = getAuth();
 
     // 1. Better Auth BEFORE json
-app.all("/api/auth/*splat", toNodeHandler(auth));
+    app.all("/api/auth/*splat", toNodeHandler(auth));
 
-// 2. JSON body parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    // 2. JSON body parsers
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
     // 3. API routes
+    app.use("/api/admin-auth", adminAuthRoutes);   // NEW — public admin signup
+
     app.use("/api/student", studentRoutes);
     app.use("/api/driver",  driverRoutes);
     app.use("/api/admin",   adminRoutes);
 
     app.use("/api/bookings",        bookingRoutes);
     app.use("/api/buses",           busRoutes);
-app.use("/api/classes", classRoutes);
+    app.use("/api/classes",         classRoutes);
     app.use("/api/notifications",   notificationRoutes);
     app.use("/api/recommendations", recommendationRoutes);
     app.use("/api/reports",         reportRoutes);
@@ -99,14 +102,14 @@ app.use("/api/classes", classRoutes);
     );
 
     // 4a. Disable caching for HTML during development
-app.use((req, res, next) => {
-  if (req.path.endsWith('.html') || req.path === '/') {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-  }
-  next();
-});
+    app.use((req, res, next) => {
+      if (req.path.endsWith('.html') || req.path === '/') {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+      }
+      next();
+    });
 
     // 4. Static assets (css/js/images)
     app.use("/css",     express.static(path.join(CLIENT_DIR, "css")));
@@ -156,7 +159,8 @@ app.use((req, res, next) => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 Socket.io initialized`);
       console.log(`🔐 Auth: /api/auth/*`);
-console.log(`🌐 Frontend: ${process.env.BETTER_AUTH_URL || "http://localhost:" + PORT}`); });
+      console.log(`🌐 Frontend: ${process.env.BETTER_AUTH_URL || "http://localhost:" + PORT}`);
+    });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);
