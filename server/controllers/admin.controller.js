@@ -18,14 +18,31 @@ export const getUsers = async (req, res) => {
   }
 };
 
-// ← NEW: GET /api/admin/users/:id
+// GET /api/admin/users/:id — fetch a single user
 export const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).lean();
+    const { id } = req.params;
+
+    // Bypass Mongoose casting — use raw collection (String _id safe)
+    let user = await User.collection.findOne({ _id: id });
+
+    // Fallback: try ObjectId in case a doc was created with ObjectId _id
     if (!user) {
+      try {
+        user = await User.collection.findOne({
+          _id: new mongoose.Types.ObjectId(id),
+        });
+      } catch { /* ignore — invalid ObjectId format */ }
+    }
+
+    if (!user) {
+      console.log("getUserById: not found for id:", id);
       return res.status(404).json({ success: false, message: "User not found" });
     }
+
+    // Strip sensitive fields
     delete user.password;
+
     res.json({ success: true, data: user });
   } catch (err) {
     console.error("getUserById error:", err);
