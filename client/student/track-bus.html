@@ -76,29 +76,24 @@
         <div class="map-wrapper">
             <div id="map"></div>
 
-            <!-- Recenter button -->
             <button type="button" class="map-btn recenter-btn" onclick="recenterMap()" title="Recenter on bus">
                 <i class="fas fa-crosshairs"></i>
             </button>
 
-            <!-- Fullscreen button -->
             <button type="button" class="map-btn fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">
                 <i class="fas fa-expand"></i>
             </button>
 
-            <!-- Delay alert banner -->
             <div class="alert-banner" id="alertBanner" style="display:none;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span id="alertText">Delay reported</span>
             </div>
 
-            <!-- Loading overlay -->
             <div class="map-loading" id="mapLoading">
                 <i class="fas fa-spinner fa-spin"></i>
                 <span>Loading bus location...</span>
             </div>
 
-            <!-- Empty state -->
             <div class="map-empty" id="mapEmpty" style="display:none;">
                 <i class="fas fa-bus-slash"></i>
                 <h3>No active trips to track</h3>
@@ -112,7 +107,6 @@
         <!-- INFO PANEL -->
         <aside class="info-panel" id="infoPanel">
 
-            <!-- Trip Info Card -->
             <div class="panel-card">
                 <div class="panel-card-header">
                     <h3><i class="fas fa-bus"></i> Trip Details</h3>
@@ -145,7 +139,6 @@
                 </div>
             </div>
 
-            <!-- Route Progress -->
             <div class="panel-card">
                 <div class="panel-card-header">
                     <h3><i class="fas fa-route"></i> Route Progress</h3>
@@ -158,7 +151,6 @@
                 </div>
             </div>
 
-            <!-- Actions -->
             <div class="panel-card">
                 <button type="button" class="action-btn primary" onclick="reportIssue()">
                     <i class="fas fa-flag"></i> Report an Issue
@@ -217,9 +209,8 @@
     </div>
 </div>
 
-  <script src="../js/api.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+<!-- SCRIPTS -->
+<script src="../js/api.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/student/track-bus.js"></script>

@@ -45,9 +45,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ---------- Buttons ----------
     document.getElementById('recenterBtn')?.addEventListener('click', recenterMap);
     document.getElementById('refreshBtn')?.addEventListener('click', refreshLocation);
-    document.getElementById('reportBtn')?.addEventListener('click', () => {
-        showToast('info', 'Coming soon', 'Report Problem page will be available soon.');
-    });
     document.getElementById('fullscreenBtn')?.addEventListener('click', toggleFullscreen);
 
     // ---------- Load data ----------
@@ -328,7 +325,7 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 
 /* =====================================================
-   SOCKET — with driver report handling
+   SOCKET
 ===================================================== */
 function initSocket(tripId) {
     if (typeof io === 'undefined') {
@@ -348,13 +345,11 @@ function initSocket(tripId) {
             updateConnectionStatus('disconnected', 'Disconnected');
         });
 
-        // ---------- Location updates ----------
         socket.on('location-updated', (d) => {
             if (String(d.tripId) === String(tripId) && d.latitude && d.longitude)
                 updateBusMarker(d.latitude, d.longitude);
         });
 
-        // ---------- Trip status change ----------
         socket.on('trip-status-changed', (data) => {
             if (String(data.tripId) !== String(tripId)) return;
 
@@ -376,7 +371,6 @@ function initSocket(tripId) {
             }
         });
 
-        // ---------- NEW: Rich driver report ----------
         socket.on('driver-report-received', (data) => {
             if (String(data.tripId) !== String(tripId)) return;
 
@@ -516,6 +510,77 @@ function toggleFullscreen() {
         document.exitFullscreen?.();
     }
 }
+
+/* =====================================================
+   REPORT ISSUE MODAL
+===================================================== */
+window.reportIssue = function () {
+    const modal = document.getElementById('reportModal');
+    if (!modal) return;
+    document.getElementById('reportIssueType').value = '';
+    document.getElementById('reportDescription').value = '';
+    document.getElementById('errIssueType').textContent = '';
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeReportModal = function () {
+    const modal = document.getElementById('reportModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+};
+
+window.submitReport = async function () {
+    const type = document.getElementById('reportIssueType').value;
+    const description = document.getElementById('reportDescription').value.trim();
+    const errEl = document.getElementById('errIssueType');
+
+    if (!type) {
+        errEl.textContent = 'Please select an issue type';
+        return;
+    }
+    errEl.textContent = '';
+
+    if (!currentTrip) {
+        showToast('error', 'No active trip', 'Cannot submit a report without a trip.');
+        return;
+    }
+
+    const btn = document.getElementById('submitReportBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+    try {
+        const res = await fetch('/api/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                tripId: currentTrip._id,
+                issueType: type,
+                description,
+                severity: 'medium',
+            }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Report failed');
+
+        closeReportModal();
+        showToast('success', 'Report submitted', 'The driver and admin have been notified.');
+    } catch (err) {
+        showToast('error', 'Failed to submit', err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+};
+
+window.refreshLocationClick = function () {
+    refreshLocation().then(() => showToast('success', 'Refreshed', 'Bus location updated.'));
+};
 
 /* =====================================================
    TOASTS
