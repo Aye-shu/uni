@@ -18,6 +18,21 @@ export const getUsers = async (req, res) => {
   }
 };
 
+// ← NEW: GET /api/admin/users/:id
+export const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    delete user.password;
+    res.json({ success: true, data: user });
+  } catch (err) {
+    console.error("getUserById error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export const updateUser = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, {
@@ -183,13 +198,11 @@ export const createDriver = async (req, res) => {
 
     const db = mongoose.connection.db;
 
-    // Check existing user
     const existing = await db.collection("user").findOne({ email: email.toLowerCase() });
     if (existing) {
       return res.status(400).json({ success: false, message: "A user with this email already exists" });
     }
 
-    // Use Better Auth to create the user (handles password hashing)
     const auth = getAuth();
     let userId = null;
 
@@ -218,7 +231,6 @@ export const createDriver = async (req, res) => {
       });
     }
 
-    // Update extra fields on the user document
     const updateData = {
       role: "driver",
       phone: phone || "",
@@ -308,13 +320,9 @@ export const deleteDriver = async (req, res) => {
   try {
     const db = mongoose.connection.db;
 
-    // Remove driver user
     await db.collection("user").deleteOne({ _id: req.params.id, role: "driver" });
-    // Remove credentials
     await db.collection("account").deleteMany({ userId: req.params.id });
-    // Remove sessions
     await db.collection("session").deleteMany({ userId: req.params.id });
-    // Unassign from any buses
     await db.collection("buses").updateMany(
       { currentDriver: req.params.id },
       { $set: { currentDriver: null } }
