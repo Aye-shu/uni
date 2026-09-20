@@ -29,7 +29,7 @@ import "./models/DelayReport.js";
 import studentRoutes from "./routes/student.routes.js";
 import driverRoutes  from "./routes/driver.routes.js";
 import adminRoutes   from "./routes/admin.routes.js";
-import adminAuthRoutes from "./routes/admin-auth.routes.js";   // NEW
+import adminAuthRoutes from "./routes/admin-auth.routes.js";
 
 import bookingRoutes        from "./routes/booking.routes.js";
 import busRoutes            from "./routes/bus.routes.js";
@@ -80,8 +80,23 @@ const startServer = async () => {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
-    // 3. API routes
-    app.use("/api/admin-auth", adminAuthRoutes);   // NEW — public admin signup
+    // 3. Disable caching for HTML AND API responses
+    //    This MUST come before route mounting so it applies to everything below.
+    app.use((req, res, next) => {
+      if (
+        req.path.endsWith(".html") ||
+        req.path === "/" ||
+        req.path.startsWith("/api/")     // ← FIX: no-cache for API responses too
+      ) {
+        res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+        res.set("Pragma", "no-cache");
+        res.set("Expires", "0");
+      }
+      next();
+    });
+
+    // 4. API routes
+    app.use("/api/admin-auth", adminAuthRoutes);
 
     app.use("/api/student", studentRoutes);
     app.use("/api/driver",  driverRoutes);
@@ -101,22 +116,12 @@ const startServer = async () => {
       res.json({ status: "OK", message: "UniBus API is running" })
     );
 
-    // 4a. Disable caching for HTML during development
-    app.use((req, res, next) => {
-      if (req.path.endsWith('.html') || req.path === '/') {
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', '0');
-      }
-      next();
-    });
-
-    // 4. Static assets (css/js/images)
+    // 5. Static assets (css/js/images)
     app.use("/css",     express.static(path.join(CLIENT_DIR, "css")));
     app.use("/js",      express.static(path.join(CLIENT_DIR, "js")));
     app.use("/assets",  express.static(path.join(CLIENT_DIR, "assets")));
 
-    // 5. Explicit HTML routes — bulletproof
+    // 6. Explicit HTML routes
     const sendPage = (file) => (req, res) => {
       const filePath = path.join(CLIENT_DIR, file);
       if (!fs.existsSync(filePath)) {
@@ -148,13 +153,13 @@ const startServer = async () => {
       res.sendFile(filePath);
     });
 
-    // 6. Generic static fallback for anything else in client/
+    // 7. Generic static fallback
     app.use(express.static(CLIENT_DIR));
 
-    // 7. Error handler LAST
+    // 8. Error handler LAST
     app.use(errorHandler);
 
-    // 8. Listen
+    // 9. Listen
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 Socket.io initialized`);
