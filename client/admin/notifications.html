@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications – UniBus Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin/admin.css">
+    <link rel="stylesheet" href="/css/admin/notifications.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon">🚌</span>
+        <span class="brand-text">Uni<span>Bus</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/admin/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+        <a href="/admin/buses.html" class="nav-item"><i class="fas fa-bus"></i><span>Manage Buses</span></a>
+        <a href="/admin/routes.html" class="nav-item"><i class="fas fa-route"></i><span>Manage Routes</span></a>
+        <a href="/admin/drivers.html" class="nav-item"><i class="fas fa-id-card"></i><span>Manage Drivers</span></a>
+        <a href="/admin/schedules.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Schedules</span></a>
+        <a href="/admin/live-buses.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Live Monitoring</span></a>
+        <a href="/admin/reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+        <a href="/admin/users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="/admin/notifications.html" class="nav-item active"><i class="fas fa-bell"></i><span>Notifications</span></a>
+        <a href="/admin/profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+    <header class="topbar">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-right">
+            <div class="connection-status" id="connectionStatus">
+                <span class="dot"></span>
+                <span class="text">Connecting...</span>
+            </div>
+            <a href="/admin/profile.html" class="user-menu" title="My Profile">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">admin</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <div class="page-header">
+        <div>
+            <h1>Notifications</h1>
+            <p>Alerts, reports, and system updates.</p>
+        </div>
+        <button type="button" class="btn-mark-all" id="markAllBtn">
+            <i class="fas fa-check-double"></i> Mark all as read
+        </button>
+    </div>
+
+    <!-- TABS -->
+    <div class="notif-tabs">
+        <button type="button" class="tab-btn active" data-filter="all">
+            All <span class="tab-count" id="countAll">0</span>
+        </button>
+        <button type="button" class="tab-btn" data-filter="unread">
+            Unread <span class="tab-count" id="countUnread">0</span>
+        </button>
+        <button type="button" class="tab-btn" data-filter="alert">
+            Alerts <span class="tab-count" id="countAlerts">0</span>
+        </button>
+        <button type="button" class="tab-btn" data-filter="booking">
+            Bookings <span class="tab-count" id="countBookings">0</span>
+        </button>
+        <button type="button" class="tab-btn" data-filter="trip">
+            Trips <span class="tab-count" id="countTrips">0</span>
+        </button>
+        <button type="button" class="tab-btn" data-filter="delay">
+            Delays <span class="tab-count" id="countDelays">0</span>
+        </button>
+    </div>
+
+    <!-- LIST -->
+    <div class="notifications-list" id="notificationsList">
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading notifications...</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/api.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/admin/notifications.js"></script>
+</body>
+</html>
