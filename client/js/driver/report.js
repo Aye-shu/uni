@@ -8,7 +8,7 @@ let activeTrip = null;
 let myReports = [];
 let selectedIssueType = null;
 
-let pendingReport = null; // used for confirmation step
+let pendingReport = null;
 
 const ISSUE_META = {
     traffic:   { label: 'Traffic',         icon: 'fa-traffic-light', cls: 'traffic' },
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('userRole').textContent = user.role || 'driver';
     document.getElementById('userAvatar').textContent = (user.name || 'D').charAt(0).toUpperCase();
 
-    // Sidebar
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
     menuToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
@@ -51,7 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/login.html';
     });
 
-    // Issue buttons
     document.querySelectorAll('.issue-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.issue-btn').forEach(b => b.classList.remove('active'));
@@ -62,7 +60,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Quick reports
     document.querySelectorAll('.quick-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const type = btn.dataset.quick;
@@ -214,7 +211,7 @@ async function loadActiveTrip() {
 }
 
 /* =====================================================
-   LOAD MY REPORTS — uses /api/reports/my (driver-scoped)
+   LOAD MY REPORTS
 ===================================================== */
 async function loadMyReports() {
     try {
@@ -381,7 +378,7 @@ function closeConfirmModal() {
 }
 
 /* =====================================================
-   SUBMIT
+   SUBMIT — shows real errors, no fake success
 ===================================================== */
 async function confirmSubmit() {
     if (!pendingReport) return;
@@ -393,12 +390,14 @@ async function confirmSubmit() {
 
     try {
         const payload = {
-            tripId: pendingReport.tripId,
-            delayMinutes: pendingReport.delayMinutes,
+            tripId: pendingReport.tripId || null,
+            delayMinutes: pendingReport.delayMinutes || 0,
             reason: pendingReport.issueType,
             description: `[${pendingReport.severity.toUpperCase()}] ${pendingReport.description || 'No details'}`,
             notifyStudents: pendingReport.notifyStudents,
         };
+
+        console.log('📤 Submitting report:', payload);
 
         const res = await fetch('/api/reports/delay', {
             method: 'POST',
@@ -407,28 +406,24 @@ async function confirmSubmit() {
             body: JSON.stringify(payload),
         });
 
-        if (res.ok) {
-            const data = await res.json();
-            if (data.data) {
-                myReports.unshift({
-                    ...data.data,
-                    createdAt: new Date().toISOString(),
-                    status: 'pending',
-                });
-            }
-        } else {
+        const data = await res.json().catch(() => ({}));
+        console.log('📥 Server response:', res.status, data);
+
+        // ✅ Real error handling — do NOT fake success
+        if (!res.ok) {
+            throw new Error(data.message || `Server returned ${res.status}`);
+        }
+
+        // Add the real report from the server
+        if (data.data) {
             myReports.unshift({
-                _id: 'local-' + Date.now(),
-                reason: pendingReport.issueType,
-                severity: pendingReport.severity,
-                description: pendingReport.description,
-                delayMinutes: pendingReport.delayMinutes,
+                ...data.data,
+                createdAt: data.data.createdAt || new Date().toISOString(),
                 status: 'pending',
-                createdAt: new Date().toISOString(),
             });
         }
 
-        // ============= REAL-TIME BROADCAST TO STUDENTS =============
+        // Live broadcast to students tracking this trip (only if there's a trip)
         if (socket && socket.connected && pendingReport.tripId) {
             socket.emit('trip-status-update', {
                 tripId: pendingReport.tripId,
@@ -443,18 +438,14 @@ async function confirmSubmit() {
                 delayMinutes: pendingReport.delayMinutes,
                 notifyStudents: pendingReport.notifyStudents,
             });
-
-            console.log('📤 Sent report to students tracking trip', pendingReport.tripId);
-        } else {
-            console.warn('⚠️ Socket not connected or no tripId — students will not be notified live');
         }
-        // ===========================================================
 
         closeConfirmModal();
         showSuccessModal();
         renderHistory();
     } catch (err) {
-        console.error('confirmSubmit:', err);
+        console.error('confirmSubmit error:', err);
+        closeConfirmModal();
         showToast('error', 'Failed to submit', err.message);
     } finally {
         btn.disabled = false;
