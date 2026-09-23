@@ -6,35 +6,49 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import { getIO } from "../config/socket.js";
 
-// POST /api/reports/delay — driver reports a delay
+// POST /api/reports/delay — driver reports a delay (with or without a trip)
 export const reportDelay = async (req, res) => {
   try {
     const { tripId, delayMinutes, reason, description } = req.body;
 
-    const trip = await Trip.findById(tripId);
-    if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
-    if (String(trip.driver) !== String(req.user.id))
-      return res.status(403).json({ success: false, message: "Not your trip" });
+    if (!reason) {
+      return res.status(400).json({ success: false, message: "reason is required" });
+    }
+
+    // If tripId is provided, verify it exists and belongs to this driver
+    let trip = null;
+    if (tripId) {
+      trip = await Trip.findById(tripId);
+      if (!trip) {
+        return res.status(404).json({ success: false, message: "Trip not found" });
+      }
+      if (String(trip.driver) !== String(req.user.id)) {
+        return res.status(403).json({ success: false, message: "Not your trip" });
+      }
+    }
 
     const report = await DelayReport.create({
-      trip: tripId,
+      trip: tripId || null,
       driver: String(req.user.id),
       reportedBy: String(req.user.id),
-      delayMinutes,
+      delayMinutes: Number(delayMinutes) || 0,
       reason,
-      description,
+      description: description || "",
     });
 
-    trip.status = "delayed";
-    trip.delayMinutes = delayMinutes;
-    trip.delayReason = reason;
-    await trip.save();
+    // If attached to a real trip, mark that trip as delayed
+    if (trip) {
+      trip.status = "delayed";
+      trip.delayMinutes = Number(delayMinutes) || 0;
+      trip.delayReason = reason;
+      await trip.save();
+    }
 
-    // Notify admins
+    // Notify admins + broadcast
     try {
       const admins = await User.find({ role: "admin" }).select("_id");
-      const title = `Driver delay report: ${reason || "Delay"}`;
-      const message = `${delayMinutes} min — ${description || "No details"}`;
+      const title = `Driver report: ${reason}`;
+      const message = description || `Delay reported${delayMinutes ? ` — ${delayMinutes} min` : ""}`;
 
       const docs = admins.map((a) => ({
         recipient: String(a._id),
@@ -47,10 +61,10 @@ export const reportDelay = async (req, res) => {
 
       const io = getIO();
       io.to("admins").emit("admin-driver-report", {
-        tripId: String(trip._id),
-        issueType: reason || "Delay",
+        tripId: trip ? String(trip._id) : null,
+        issueType: reason,
         description,
-        delayMinutes,
+        delayMinutes: Number(delayMinutes) || 0,
         reportedBy: req.user.id,
         timestamp: new Date(),
       });
@@ -60,6 +74,7 @@ export const reportDelay = async (req, res) => {
 
     res.status(201).json({ success: true, data: report });
   } catch (err) {
+    console.error("reportDelay error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -81,7 +96,6 @@ export const createReport = async (req, res) => {
       return res.status(404).json({ success: false, message: "Trip not found" });
     }
 
-    // 1. Save the report
     const report = await DelayReport.create({
       trip: tripId,
       driver: trip.driver ? String(trip.driver) : String(req.user.id),
@@ -92,7 +106,6 @@ export const createReport = async (req, res) => {
       status: "pending",
     });
 
-    // 2. Build notification content
     const studentName = req.user.name || "A student";
     const busNumber = trip.bus?.busNumber || "a bus";
     const notifTitle = `Student report: ${issueType}`;
@@ -100,7 +113,6 @@ export const createReport = async (req, res) => {
       ? `${studentName}: ${description}`
       : `${studentName} reported "${issueType}" on ${busNumber}.`;
 
-    // 3. Notify the DRIVER (if assigned)
     try {
       if (trip.driver) {
         await Notification.create({
@@ -112,7 +124,6 @@ export const createReport = async (req, res) => {
         });
       }
 
-      // 4. Notify ALL ADMINS
       const admins = await User.find({ role: "admin" }).select("_id");
       if (admins.length) {
         const adminDocs = admins.map((a) => ({
@@ -125,7 +136,6 @@ export const createReport = async (req, res) => {
         await Notification.insertMany(adminDocs);
       }
 
-      // 5. Live socket events
       const io = getIO();
 
       if (trip.driver) {
@@ -169,7 +179,7 @@ export const createReport = async (req, res) => {
   }
 };
 
-// GET /api/reports — admin: list all delay reports
+// GET /api/reports — admin: list all reports
 export const getAllReports = async (req, res) => {
   try {
     const reports = await DelayReport.find({})
