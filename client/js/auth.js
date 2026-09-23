@@ -39,13 +39,13 @@ export const initAuth = async () => {
 
       // THIS is what registers POST /api/auth/forget-password
       sendResetPassword: async ({ user, url, token }) => {
-        // Always log the link — this is your guaranteed fallback
+        // Always log the link as a guaranteed fallback
         console.log("\n🔗 ===== PASSWORD RESET LINK =====");
         console.log(`To:   ${user.email}`);
         console.log(`Link: ${url}`);
         console.log("==================================\n");
 
-        // Try to email — but never let failures bubble up
+        // Try email — never let failure bubble up
         try {
           if (!process.env.RESEND_API_KEY) {
             console.warn("⚠️ RESEND_API_KEY not set — link logged above");
