@@ -214,17 +214,16 @@ async function loadActiveTrip() {
 }
 
 /* =====================================================
-   LOAD MY REPORTS
+   LOAD MY REPORTS — uses /api/reports/my (driver-scoped)
 ===================================================== */
 async function loadMyReports() {
     try {
-        const res = await fetch('/api/reports', { credentials: 'include' });
+        const res = await fetch('/api/reports/my', { credentials: 'include' });
         if (!res.ok) {
             myReports = [];
         } else {
             const data = await res.json();
-            const all = data.data || [];
-            myReports = all.filter(r => idsMatch(r.driver, user.id));
+            myReports = data.data || [];
         }
     } catch {
         myReports = [];
@@ -431,13 +430,11 @@ async function confirmSubmit() {
 
         // ============= REAL-TIME BROADCAST TO STUDENTS =============
         if (socket && socket.connected && pendingReport.tripId) {
-            // Event 1: Trip status update
             socket.emit('trip-status-update', {
                 tripId: pendingReport.tripId,
                 status: 'delayed',
             });
 
-            // Event 2: Rich report details for students + admins
             socket.emit('driver-report', {
                 tripId: pendingReport.tripId,
                 issueType: pendingReport.issueType,
