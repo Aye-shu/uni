@@ -1,148 +1,225 @@
-// server/config/auth.js
-import { betterAuth } from "better-auth";
-import { mongodbAdapter } from "@better-auth/mongo-adapter";
-import { MongoClient } from "mongodb";
+/* =====================================================
+   UNIBUS - Auth Page JavaScript
+===================================================== */
 
-let authInstance = null;
-let mongoClient = null;
+// ---------- Animation Timings ----------
+const time_to_show_login = 400;
+const time_to_hidden_login = 200;
+const time_to_show_sign_up = 100;
+const time_to_hidden_sign_up = 400;
+const time_to_hidden_all = 500;
 
-// ============================================================
-// Lazy Resend client
-// ============================================================
-let resendClient = null;
-const getResend = async () => {
-  if (resendClient) return resendClient;
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error(
-      "RESEND_API_KEY is not set. Add it to your environment variables to send reset emails."
-    );
-  }
-  const { Resend } = await import("resend");
-  resendClient = new Resend(process.env.RESEND_API_KEY);
-  return resendClient;
-};
+// ---------- Switch to Login View ----------
+function change_to_login() {
+  document.querySelector('.cont_forms').className = 'cont_forms cont_forms_active_login';
+  document.querySelector('.cont_form_login').style.display = 'block';
+  document.querySelector('.cont_form_sign_up').style.opacity = '0';
 
-// ============================================================
-// Initialize Better Auth
-// ============================================================
-export const initAuth = async () => {
-  if (authInstance) return authInstance;
+  setTimeout(() => {
+    document.querySelector('.cont_form_login').style.opacity = '1';
+  }, time_to_show_login);
 
-  if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is not set.");
-  if (!process.env.BETTER_AUTH_SECRET) throw new Error("BETTER_AUTH_SECRET is not set.");
+  setTimeout(() => {
+    document.querySelector('.cont_form_sign_up').style.display = 'none';
+  }, time_to_hidden_login);
+}
 
-  mongoClient = new MongoClient(process.env.MONGODB_URI);
-  await mongoClient.connect();
+// ---------- Switch to Signup View ----------
+function change_to_sign_up() {
+  document.querySelector('.cont_forms').className = 'cont_forms cont_forms_active_sign_up';
+  document.querySelector('.cont_form_sign_up').style.display = 'block';
+  document.querySelector('.cont_form_login').style.opacity = '0';
 
-  // IMPORTANT: use the same database as the rest of UniBus
-  const db = mongoClient.db("uni");
+  setTimeout(() => {
+    document.querySelector('.cont_form_sign_up').style.opacity = '1';
+  }, time_to_show_sign_up);
 
-  const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:5000";
+  setTimeout(() => {
+    document.querySelector('.cont_form_login').style.display = 'none';
+  }, time_to_hidden_sign_up);
+}
 
-  authInstance = betterAuth({
-    // ----- Database -----
-    database: mongodbAdapter(db),
+// ---------- Collapse Both ----------
+function hidden_login_and_sign_up() {
+  document.querySelector('.cont_forms').className = 'cont_forms';
+  document.querySelector('.cont_form_sign_up').style.opacity = '0';
+  document.querySelector('.cont_form_login').style.opacity = '0';
 
-    // ----- Security -----
-    secret: process.env.BETTER_AUTH_SECRET,
-    baseURL,
-    basePath: "/api/auth",
-    trustedOrigins: [
-      baseURL,
-      "http://localhost:5000",
-      "http://127.0.0.1:5000",
-      "https://uni-e7l7.onrender.com",
-      "https://uni-a-c261.vercel.app",
-      "https://uni-phi-gold.vercel.app",
-    ],
+  setTimeout(() => {
+    document.querySelector('.cont_form_sign_up').style.display = 'none';
+    document.querySelector('.cont_form_login').style.display = 'none';
+  }, time_to_hidden_all);
+}
 
-    // ----- Email + Password -----
-    emailAndPassword: {
-      enabled: true,
-      minPasswordLength: 6,
+// ---------- Messages ----------
+function showMessage(elementId, message, type = 'error') {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'form-message ' + type;
+}
 
-      sendResetPassword: async ({ user, url }) => {
-        try {
-          const resend = await getResend();
-          await resend.emails.send({
-            from: "UniBus <onboarding@resend.dev>",
-            to: user.email,
-            subject: "Reset your UniBus password",
-            html: `
-              <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-                <h1 style="color:#0f0f0f;font-size:22px;">Reset Your Password</h1>
-                <p style="color:#444;line-height:1.6;">
-                  Hi ${user.name || "there"}, we received a request to reset your UniBus password.
-                </p>
-                <p style="text-align:center;margin:32px 0;">
-                  <a href="${url}" style="background:#f97316;color:#fff;padding:14px 28px;
-                     border-radius:10px;text-decoration:none;font-weight:700;">
-                    Reset Password
-                  </a>
-                </p>
-                <p style="color:#6b7280;font-size:14px;">
-                  Or copy this link:<br>
-                  <a href="${url}" style="color:#f97316;word-break:break-all;">${url}</a>
-                </p>
-                <p style="color:#9ca3af;font-size:13px;">
-                  This link expires in 1 hour. If you didn't request this, ignore this email.
-                </p>
-              </div>
-            `,
-          });
-          console.log(`✅ Reset email sent to ${user.email}`);
-        } catch (err) {
-          console.error("❌ Resend error:", {
-            message: err.message,
-            error: err.error,
-            statusCode: err.statusCode,
-            name: err.name,
-          });
-          // Fallback for development/testing
-          console.log("\n🔗 ===== PASSWORD RESET LINK (fallback) =====");
-          console.log(`To:   ${user.email}`);
-          console.log(`Link: ${url}`);
-          console.log("============================================\n");
-        }
-      },
-    },
+function hideMessage(elementId) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.className = 'form-message';
+  el.textContent = '';
+}
 
-    // ----- Session -----
-    session: {
-      expiresIn: 60 * 60 * 24 * 7,
-      updateAge: 60 * 60 * 24,
-    },
-
-    advanced: {
-      ipAddress: {
-        trustedProxies: ["0.0.0.0/0"],
-      },
-    },
-
-    // ----- Additional User Fields -----
-    user: {
-      additionalFields: {
-        role: {
-          type: "string",
-          required: false,
-          defaultValue: "student",
-          input: false,
-        },
-        phone: { type: "string", required: false },
-        studentId: { type: "string", required: false },
-        department: { type: "string", required: false },
-        licenseNumber: { type: "string", required: false },
-      },
-    },
+// ---------- Role Selector ----------
+window.selectRole = function (role) {
+  document.querySelectorAll('.role-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.role === role);
   });
 
-  console.log(`🔐 Better Auth initialized (baseURL: ${baseURL})`);
-  return authInstance;
+  const studentForm = document.getElementById('signupFormStudent');
+  const adminForm   = document.getElementById('signupFormAdmin');
+  const notice      = document.getElementById('restrictedNotice');
+
+  if (role === 'student') {
+    studentForm.style.display = 'block';
+    if (adminForm) adminForm.style.display = 'none';
+    if (notice) notice.style.display = 'none';
+  } else {
+    studentForm.style.display = 'none';
+    if (adminForm) adminForm.style.display = 'none';
+    if (notice) {
+      notice.style.display = 'block';
+      notice.innerHTML = role === 'admin'
+        ? '<i class="fas fa-lock"></i> Admin accounts are created by the system administrator. Contact your transport office.'
+        : '<i class="fas fa-lock"></i> Driver accounts are created by the admin. Please contact your transport office.';
+    }
+  }
 };
 
-export const getAuth = () => {
-  if (!authInstance) throw new Error("Auth not initialized. Call initAuth() first.");
-  return authInstance;
-};
+// ---------- LOGIN ----------
+async function handleLogin(e) {
+  e.preventDefault();
 
-export default { initAuth, getAuth };
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+
+  hideMessage('loginMessage');
+
+  if (!email || !password) {
+    showMessage('loginMessage', 'Please fill in all fields.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'LOGGING IN...';
+
+  try {
+    const res = await fetch('/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || data.error || 'Invalid email or password');
+    }
+
+    showMessage('loginMessage', '✅ Login successful! Redirecting...', 'success');
+
+    const role = data.user?.role || 'student';
+
+    setTimeout(() => {
+      if (role === 'admin')       window.location.href = '/admin/dashboard.html';
+      else if (role === 'driver') window.location.href = '/driver/dashboard.html';
+      else                        window.location.href = '/student/dashboard.html';
+    }, 900);
+
+  } catch (err) {
+    showMessage('loginMessage', '❌ ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'LOGIN';
+  }
+}
+
+// ---------- STUDENT SIGNUP ----------
+async function handleStudentSignup(e) {
+  e.preventDefault();
+
+  const name       = document.getElementById('studentName').value.trim();
+  const email      = document.getElementById('studentEmail').value.trim();
+  const studentId  = document.getElementById('studentId').value.trim();
+  const phone      = document.getElementById('studentPhone').value.trim();
+  const department = document.getElementById('studentDepartment').value;
+  const password   = document.getElementById('studentPassword').value;
+  const confirm    = document.getElementById('studentConfirm').value;
+  const terms      = document.getElementById('studentTerms').checked;
+  const btn        = document.getElementById('studentSignupBtn');
+
+  hideMessage('studentMessage');
+
+  if (!name || !email || !studentId || !department || !password || !confirm) {
+    showMessage('studentMessage', 'Please fill in all required fields.', 'error');
+    return;
+  }
+  if (password.length < 8) {
+    showMessage('studentMessage', 'Password must be at least 8 characters.', 'error');
+    return;
+  }
+  if (password !== confirm) {
+    showMessage('studentMessage', 'Passwords do not match.', 'error');
+    return;
+  }
+  if (!terms) {
+    showMessage('studentMessage', 'Please agree to the Terms & Conditions.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'CREATING...';
+
+  try {
+    const res = await fetch('/api/auth/sign-up/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        studentId,
+        department,
+        phone: phone || undefined,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Signup failed');
+
+    showMessage('studentMessage', '✅ Account created! Switching to login...', 'success');
+    setTimeout(() => {
+      document.getElementById('signupFormStudent').reset();
+      change_to_login();
+      hideMessage('studentMessage');
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').focus();
+    }, 1400);
+
+  } catch (err) {
+    showMessage('studentMessage', '❌ ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'SIGN UP';
+  }
+}
+
+// ---------- On Page Load ----------
+document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('loginForm');
+  const studentForm = document.getElementById('signupFormStudent');
+
+  if (loginForm)   loginForm.addEventListener('submit', handleLogin);
+  if (studentForm) studentForm.addEventListener('submit', handleStudentSignup);
+
+  if (window.location.pathname.endsWith('signup.html')) {
+    setTimeout(() => change_to_sign_up(), 100);
+  }
+});
