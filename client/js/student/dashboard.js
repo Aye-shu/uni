@@ -2,6 +2,8 @@
    UNIBUS — Student Dashboard JavaScript
 ===================================================== */
 
+let socket = null;   // ← NEW
+
 document.addEventListener('DOMContentLoaded', async () => {
     // ---------- Auth Check ----------
     const user = await checkAuth();
@@ -74,7 +76,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {}
         window.location.href = '/login.html';
     });
+
+    // ---------- Socket.io — join personal room for live notifications ----------
+    initSocket(user);
 });
+
+/* =====================================================
+   SOCKET
+===================================================== */
+function initSocket(user) {
+    if (typeof io === 'undefined') return;
+    try {
+        socket = io({ withCredentials: true });
+
+        socket.on('connect', () => {
+            console.log('🔌 Student socket connected');
+            if (user?.id) socket.emit('join-user', user.id);
+        });
+
+        socket.on('new-notification', (data) => {
+            console.log('🔔 New notification:', data);
+
+            // Show toast
+            if (typeof showToast === 'function') {
+                showToast('info', data.title || 'New notification', data.message || '');
+            }
+
+            // Prepend into the notifications widget if the list exists
+            const list = document.getElementById('notificationsList');
+            if (list) {
+                const item = document.createElement('div');
+                item.className = 'notification-item';
+                item.innerHTML = `
+                    <div class="notif-icon delay"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="notif-content">
+                        <h5>${escapeHtml(data.title || '')}</h5>
+                        <p>${escapeHtml(data.message || '')}</p>
+                        <span class="notif-time">just now</span>
+                    </div>`;
+                list.prepend(item);
+            }
+
+            // Bump the badge
+            const badge = document.getElementById('notifBadge');
+            if (badge) {
+                const current = parseInt(badge.textContent || '0', 10) || 0;
+                badge.textContent = current + 1;
+                badge.style.display = 'inline-flex';
+            }
+        });
+    } catch (err) {
+        console.warn('Socket init failed:', err);
+    }
+}
 
 /* =====================================================
    AUTH
@@ -240,7 +294,6 @@ function renderNotifications(notifications) {
     const badge = document.getElementById('notifBadge');
     const recent = notifications.slice(0, 5);
 
-    // ✅ Update badge FIRST — even when list is empty
     const unread = notifications.filter(n => !n.isRead).length;
     if (badge) {
         if (unread > 0) {
@@ -346,3 +399,32 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 }
+
+/* =====================================================
+   TOASTS (fallback for dashboard)
+===================================================== */
+function showToast(type, title, message = '') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${icons[type]}"></i>
+        <div class="toast-content">
+            <h5>${escapeHtml(title)}</h5>
+            ${message ? `<p>${escapeHtml(message)}</p>` : ''}
+        </div>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(40px)';
+        toast.style.transition = '0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+// Cleanup
+window.addEventListener('beforeunload', () => {
+    if (socket) { try { socket.disconnect(); } catch {} }
+});
