@@ -15,7 +15,6 @@ let user = null;
 let busCoords = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // ---------- Auth ----------
     user = await checkAuth();
     if (!user) return;
 
@@ -23,7 +22,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('userRole').textContent = user.role || 'student';
     document.getElementById('userAvatar').textContent = (user.name || 'S').charAt(0).toUpperCase();
 
-    // ---------- Sidebar toggle ----------
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
     menuToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
@@ -36,18 +34,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ---------- Logout ----------
     document.getElementById('logoutBtn')?.addEventListener('click', async () => {
         try { await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }); } catch {}
         window.location.href = '/login.html';
     });
 
-    // ---------- Buttons ----------
     document.getElementById('recenterBtn')?.addEventListener('click', recenterMap);
     document.getElementById('refreshBtn')?.addEventListener('click', refreshLocation);
     document.getElementById('fullscreenBtn')?.addEventListener('click', toggleFullscreen);
 
-    // ---------- Load data ----------
     await loadTripContext();
 });
 
@@ -339,6 +334,8 @@ function initSocket(tripId) {
             updateConnectionStatus('connected', 'Live');
             console.log('🔌 Socket connected');
             socket.emit('join-trip', tripId);
+            // NEW: also join personal room so live notifications reach this user
+            if (user?.id) socket.emit('join-user', user.id);
         });
 
         socket.on('disconnect', () => {
@@ -407,6 +404,17 @@ function initSocket(tripId) {
             addNotificationToList({
                 title: `Driver: ${typeLabel}`,
                 message: data.description || `Expected delay: ${data.delayMinutes} minutes`,
+                timestamp: new Date(),
+            });
+        });
+
+        // NEW: live push of notifications into this user's personal room
+        socket.on('new-notification', (data) => {
+            console.log('🔔 Personal notification:', data);
+            showToast('info', data.title || 'Notification', data.message || '');
+            addNotificationToList({
+                title: data.title || 'Notification',
+                message: data.message || '',
                 timestamp: new Date(),
             });
         });
