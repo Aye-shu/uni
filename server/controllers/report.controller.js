@@ -15,7 +15,6 @@ export const reportDelay = async (req, res) => {
       return res.status(400).json({ success: false, message: "reason is required" });
     }
 
-    // If tripId is provided, verify it exists and belongs to this driver
     let trip = null;
     if (tripId) {
       trip = await Trip.findById(tripId);
@@ -36,7 +35,6 @@ export const reportDelay = async (req, res) => {
       description: description || "",
     });
 
-    // If attached to a real trip, mark that trip as delayed
     if (trip) {
       trip.status = "delayed";
       trip.delayMinutes = Number(delayMinutes) || 0;
@@ -69,7 +67,63 @@ export const reportDelay = async (req, res) => {
         timestamp: new Date(),
       });
     } catch (notifErr) {
-      console.warn("Notification failed:", notifErr.message);
+      console.warn("Admin notification failed:", notifErr.message);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // NEW: notify every student with a confirmed booking on this trip
+    // ─────────────────────────────────────────────────────────
+    if (trip) {
+      try {
+        const bookings = await Booking.find({
+          trip: trip._id,
+          status: "confirmed",
+        }).select("student");
+
+        const studentIds = [...new Set(bookings.map(b => String(b.student)).filter(Boolean))];
+
+        if (studentIds.length) {
+          const busNumber = trip.bus?.busNumber || "";
+          const studentTitle = busNumber
+            ? `Bus ${busNumber}: ${reason}`
+            : `Bus update: ${reason}`;
+
+          const studentMsg = description
+            ? `${description}${delayMinutes ? ` (approx. ${delayMinutes} min delay)` : ""}`
+            : `Your bus has reported: ${reason}${delayMinutes ? ` — approx. ${delayMinutes} min delay` : ""}`;
+
+          const studentDocs = studentIds.map(sid => ({
+            recipient: sid,
+            title: studentTitle,
+            message: studentMsg,
+            type: "delay",
+            relatedId: report._id,
+          }));
+          await Notification.insertMany(studentDocs);
+          console.log(`✅ Notified ${studentIds.length} student(s) about the report`);
+
+          const io = getIO();
+          studentIds.forEach(sid => {
+            io.to(`user-${sid}`).emit("new-notification", {
+              title: studentTitle,
+              message: studentMsg,
+              type: "delay",
+              timestamp: new Date(),
+            });
+          });
+
+          io.to(`trip-${trip._id}`).emit("driver-report-received", {
+            tripId: String(trip._id),
+            issueType: reason,
+            description,
+            delayMinutes: Number(delayMinutes) || 0,
+            severity: "medium",
+            timestamp: new Date(),
+          });
+        }
+      } catch (stuErr) {
+        console.warn("Student notification failed:", stuErr.message);
+      }
     }
 
     res.status(201).json({ success: true, data: report });
