@@ -215,12 +215,88 @@ export const createDriver = async (req, res) => {
     const db = mongoose.connection.db;
     const lowerEmail = String(email).toLowerCase().trim();
 
-    const existing = await db.collection("user").findOne({ email: lowerEmail });
-    if (existing) {
-      return res.status(400).json({ success: false, message: "A user with this email already exists" });
+    // Safely build assignedBus ObjectId
+    let assignedBusValue = null;
+    if (assignedBus) {
+      try {
+        assignedBusValue = new mongoose.Types.ObjectId(String(assignedBus));
+      } catch {
+        assignedBusValue = null;
+      }
     }
 
-    // Create user via Better Auth
+    // Check for existing user
+    const existing = await db.collection("user").findOne({ email: lowerEmail });
+
+    if (existing) {
+      // If already a driver → reject
+      if (existing.role === "driver") {
+        return res.status(400).json({
+          success: false,
+          message: "A driver with this email already exists",
+        });
+      }
+
+      // If a student (orphan from failed attempt) → promote to driver
+      if (existing.role === "student") {
+        console.log("🔁 Promoting orphan student to driver:", lowerEmail);
+
+        await db.collection("user").updateOne(
+          { _id: existing._id },
+          {
+            $set: {
+              role: "driver",
+              phone: phone || existing.phone || "",
+              licenseNumber: licenseNumber || existing.licenseNumber || "",
+              assignedBus: assignedBusValue,
+              isActive: !!isActive,
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        // Reset the password so admin's credentials work
+        try {
+          const bcrypt = (await import("bcryptjs")).default;
+          const hash = await bcrypt.hash(password, 10);
+
+          const accUpdate = await db.collection("account").updateOne(
+            { userId: String(existing._id), providerId: "credential" },
+            { $set: { password: hash, updatedAt: new Date() } }
+          );
+
+          if (accUpdate.matchedCount === 0) {
+            // No credential record — create one
+            await db.collection("account").insertOne({
+              userId: String(existing._id),
+              providerId: "credential",
+              password: hash,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          }
+        } catch (pwErr) {
+          console.warn("⚠️ Could not set password for orphan:", pwErr.message);
+        }
+
+        const updated = await db.collection("user").findOne({ _id: existing._id });
+        if (updated) delete updated.password;
+
+        return res.status(201).json({
+          success: true,
+          data: updated,
+          message: "Existing account promoted to driver",
+        });
+      }
+
+      // Admin or anything else → reject
+      return res.status(400).json({
+        success: false,
+        message: `A user with this email already exists (role: ${existing.role})`,
+      });
+    }
+
+    // ---- No existing user → create fresh via Better Auth ----
     const auth = getAuth();
     let userId = null;
 
@@ -247,18 +323,7 @@ export const createDriver = async (req, res) => {
       });
     }
 
-    // Cast to string (Better Auth uses String _id)
     const userIdStr = String(userId);
-
-    // Safely handle assignedBus
-    let assignedBusValue = null;
-    if (assignedBus) {
-      try {
-        assignedBusValue = new mongoose.Types.ObjectId(String(assignedBus));
-      } catch {
-        assignedBusValue = null;
-      }
-    }
 
     const updateData = {
       role: "driver",
@@ -269,7 +334,6 @@ export const createDriver = async (req, res) => {
       updatedAt: new Date(),
     };
 
-    // Update by String _id
     const updateResult = await db.collection("user").updateOne(
       { _id: userIdStr },
       { $set: updateData }
@@ -280,7 +344,6 @@ export const createDriver = async (req, res) => {
       modified: updateResult.modifiedCount,
     });
 
-    // Fallback: match by email
     if (updateResult.matchedCount === 0) {
       const alt = await db.collection("user").updateOne(
         { email: lowerEmail },
@@ -292,7 +355,6 @@ export const createDriver = async (req, res) => {
       });
     }
 
-    // Verify role
     const newDriver = await db.collection("user").findOne({ email: lowerEmail });
     console.log("✅ Final role in DB:", newDriver?.role);
 
@@ -389,10 +451,8 @@ export const deleteDriver = async (req, res) => {
 
     console.log("🗑️ deleteDriver id:", id);
 
-    // 1. Look up the user first
     let driver = await db.collection("user").findOne({ _id: id });
 
-    // Fallback: try ObjectId
     if (!driver) {
       try {
         driver = await db.collection("user").findOne({
@@ -410,20 +470,16 @@ export const deleteDriver = async (req, res) => {
 
     const realId = String(driver._id);
 
-    // 2. Delete the user
     const del = await db.collection("user").deleteOne({ _id: driver._id });
     console.log("✅ Deleted user count:", del.deletedCount);
 
-    // 3. Clean up related collections
     await db.collection("account").deleteMany({ userId: realId });
     await db.collection("session").deleteMany({ userId: realId });
 
-    // 4. Unassign from buses
     await db.collection("buses").updateMany(
       { currentDriver: driver._id },
       { $set: { currentDriver: null } }
     );
-    // Also try String match for safety
     await db.collection("buses").updateMany(
       { currentDriver: realId },
       { $set: { currentDriver: null } }
