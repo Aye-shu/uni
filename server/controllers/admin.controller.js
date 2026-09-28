@@ -385,30 +385,68 @@ export const createDriver = async (req, res) => {
 export const updateDriver = async (req, res) => {
   try {
     const db = mongoose.connection.db;
+    const id = String(req.params.id);
     const { name, phone, licenseNumber, assignedBus, isActive } = req.body;
 
-    const updates = { updatedAt: new Date() };
-    if (name !== undefined) updates.name = name;
-    if (phone !== undefined) updates.phone = phone;
-    if (licenseNumber !== undefined) updates.licenseNumber = licenseNumber;
-    if (assignedBus !== undefined) {
-      updates.assignedBus = assignedBus ? new mongoose.Types.ObjectId(assignedBus) : null;
-    }
-    if (isActive !== undefined) updates.isActive = !!isActive;
+    console.log("📥 updateDriver id:", id, "| body:", req.body);
 
-    const result = await db.collection("user").findOneAndUpdate(
-      { _id: req.params.id, role: "driver" },
+    // 1. Look up the driver first — gives us the actual _id from the DB
+    let existing = await db.collection("user").findOne({ _id: id });
+
+    if (!existing) {
+      try {
+        existing = await db.collection("user").findOne({
+          _id: new mongoose.Types.ObjectId(id),
+        });
+      } catch { /* invalid ObjectId — ignore */ }
+    }
+
+    if (!existing) {
+      console.log("❌ Driver not found:", id);
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found",
+        searchedId: id,
+      });
+    }
+
+    console.log("✅ Found driver:", existing.email, "| role:", existing.role);
+
+    // 2. Build update object
+    const updates = { updatedAt: new Date() };
+    if (name          !== undefined) updates.name          = name;
+    if (phone         !== undefined) updates.phone         = phone;
+    if (licenseNumber !== undefined) updates.licenseNumber = licenseNumber;
+    if (isActive      !== undefined) updates.isActive      = !!isActive;
+
+    if (assignedBus !== undefined) {
+      if (assignedBus) {
+        try {
+          updates.assignedBus = new mongoose.Types.ObjectId(String(assignedBus));
+        } catch {
+          updates.assignedBus = null;
+        }
+      } else {
+        updates.assignedBus = null;
+      }
+    }
+
+    // 3. Update using the real _id from the DB
+    const raw = await db.collection("user").findOneAndUpdate(
+      { _id: existing._id },
       { $set: updates },
       { returnDocument: "after" }
     );
 
-    if (!result) {
-      return res.status(404).json({ success: false, message: "Driver not found" });
-    }
+    // Handle both MongoDB driver v5 ({value}) and v6+ (direct doc)
+    const updated = raw && raw.value !== undefined ? raw.value : raw;
 
-    res.json({ success: true, data: result });
+    if (updated) delete updated.password;
+
+    console.log("✅ Driver updated:", existing.email);
+    res.json({ success: true, data: updated });
   } catch (err) {
-    console.error("updateDriver error:", err);
+    console.error("❌ updateDriver error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
