@@ -90,6 +90,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* =====================================================
+   SAFE DOM HELPERS — never throw on missing elements
+===================================================== */
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+    else console.warn(`[seat-selection] Missing element #${id}`);
+}
+
+function setHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+    else console.warn(`[seat-selection] Missing element #${id}`);
+}
+
+/* =====================================================
    AUTH
 ===================================================== */
 async function checkAuth() {
@@ -122,9 +137,14 @@ async function loadTrip(tripId) {
         if (!res.ok) throw new Error(data.message || 'Trip not found');
 
         currentTrip = data.data;
+        console.log('✅ Trip loaded:', currentTrip);
+
+        // Only redirect if the trip fetch itself failed.
+        // render* functions are now safe and won't throw.
         renderTripSummary();
         renderPanel();
     } catch (err) {
+        console.error('❌ loadTrip failed:', err);
         showToast('error', 'Failed to load trip', err.message);
         setTimeout(() => window.location.href = '/student/find-bus.html', 1500);
     }
@@ -144,10 +164,10 @@ async function loadSeats(tripId) {
     } catch (err) {
         console.error('Seat load error:', err);
         showToast('error', 'Failed to load seats', err.message);
-        document.getElementById('seatGrid').innerHTML = `
+        setHtml('seatGrid', `
             <div class="seat-loading" style="color:#dc2626;">
                 <i class="fas fa-exclamation-circle"></i> Could not load seats
-            </div>`;
+            </div>`);
     }
 }
 
@@ -172,7 +192,6 @@ function formatTravelDate() {
 
 /* =====================================================
    STOP ID HELPER
-   Only returns a valid 24-char hex string, otherwise null.
 ===================================================== */
 function extractStopId(stop) {
     if (!stop) return null;
@@ -202,11 +221,13 @@ function getDropoffStopId() {
 ===================================================== */
 function renderTripSummary() {
     const t = currentTrip;
+    if (!t) return;
+
     const busNum = t.bus?.busNumber || 'Bus';
     const route = t.route?.name || 'Campus Route';
     const date = formatTravelDate();
 
-    document.getElementById('tripSummary').innerHTML = `
+    setHtml('tripSummary', `
         <div class="trip-summary-grid">
             <div class="trip-summary-item">
                 <span>Bus</span>
@@ -229,7 +250,7 @@ function renderTripSummary() {
                 <strong>${escapeHtml(t.direction || 'outbound')}</strong>
             </div>
         </div>
-    `;
+    `);
 }
 
 /* =====================================================
@@ -237,6 +258,11 @@ function renderTripSummary() {
 ===================================================== */
 function renderSeatGrid() {
     const grid = document.getElementById('seatGrid');
+    if (!grid) {
+        console.warn('seatGrid element not found');
+        return;
+    }
+
     const { capacity, taken } = currentSeats;
 
     if (!capacity) {
@@ -244,7 +270,7 @@ function renderSeatGrid() {
         return;
     }
 
-    const takenSet = new Set(taken.map(String));
+    const takenSet = new Set((taken || []).map(String));
     let html = '';
 
     const rows = Math.ceil(capacity / 4);
@@ -311,7 +337,7 @@ function selectSeat(el) {
 
 function updateConfirmBtn() {
     const btn = document.getElementById('confirmBtn');
-    btn.disabled = !selectedSeat;
+    if (btn) btn.disabled = !selectedSeat;
 }
 
 /* =====================================================
@@ -321,13 +347,13 @@ function renderPanel() {
     const t = currentTrip;
     if (!t) return;
 
-    document.getElementById('panelBus').textContent = t.bus?.busNumber || '—';
-    document.getElementById('panelRoute').textContent = t.route?.name || '—';
-    document.getElementById('panelDate').textContent = formatTravelDate();
-    document.getElementById('panelDeparture').textContent = formatTime(t.departureTime);
-    document.getElementById('panelDirection').textContent = (t.direction || 'outbound');
-    document.getElementById('panelSeat').textContent = selectedSeat ? `Seat ${selectedSeat}` : 'None';
-    document.getElementById('panelFare').textContent = selectedSeat ? `৳ ${FARE}` : '৳ 0';
+    setText('panelBus', t.bus?.busNumber || '—');
+    setText('panelRoute', t.route?.name || '—');
+    setText('panelDate', formatTravelDate());
+    setText('panelDeparture', formatTime(t.departureTime));
+    setText('panelDirection', (t.direction || 'outbound'));
+    setText('panelSeat', selectedSeat ? `Seat ${selectedSeat}` : 'None');
+    setText('panelFare', selectedSeat ? `৳ ${FARE}` : '৳ 0');
 }
 
 /* =====================================================
@@ -336,16 +362,16 @@ function renderPanel() {
 function openConfirmModal() {
     if (!selectedSeat) return;
 
-    document.getElementById('confirmSeat').textContent = `Seat ${selectedSeat}`;
-    document.getElementById('confirmBus').textContent = currentTrip?.bus?.busNumber || 'the bus';
-    document.getElementById('confirmDate').textContent = formatTravelDate();
+    setText('confirmSeat', `Seat ${selectedSeat}`);
+    setText('confirmBus', currentTrip?.bus?.busNumber || 'the bus');
+    setText('confirmDate', formatTravelDate());
 
-    document.getElementById('confirmModal').classList.add('active');
+    document.getElementById('confirmModal')?.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
 
 function closeConfirmModal() {
-    document.getElementById('confirmModal').classList.remove('active');
+    document.getElementById('confirmModal')?.classList.remove('active');
     document.body.style.overflow = '';
 }
 
@@ -364,7 +390,6 @@ async function createBooking() {
         const tripId = currentTrip._id;
         const travelDate = getTravelDate();
 
-        // Extract only stop IDs (or null)
         const pickupStopId  = getPickupStopId();
         const dropoffStopId = getDropoffStopId();
 
@@ -386,7 +411,6 @@ async function createBooking() {
 
         closeConfirmModal();
 
-        // Clear stored selection after successful booking
         localStorage.removeItem('unibus_selected_trip');
 
         showSuccess(data.data);
@@ -411,14 +435,14 @@ async function createBooking() {
 ===================================================== */
 function showSuccess(booking) {
     const t = currentTrip;
-    document.getElementById('successDetails').innerHTML = `
+    setHtml('successDetails', `
         <div class="row"><span>Booking ID</span><strong>${escapeHtml(booking.bookingId || '—')}</strong></div>
         <div class="row"><span>Bus</span><strong>${escapeHtml(t.bus?.busNumber || '')}</strong></div>
         <div class="row"><span>Seat</span><strong>${escapeHtml(booking.seatNumber)}</strong></div>
         <div class="row"><span>Date</span><strong>${escapeHtml(booking.travelDate ? new Date(booking.travelDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : formatTravelDate())}</strong></div>
         <div class="row"><span>Departure</span><strong>${formatTime(t.departureTime)}</strong></div>
-    `;
-    document.getElementById('successModal').classList.add('active');
+    `);
+    document.getElementById('successModal')?.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
 
@@ -427,6 +451,7 @@ function showSuccess(booking) {
 ===================================================== */
 function showToast(type, title, message = '') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
     const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
