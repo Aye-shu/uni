@@ -663,35 +663,24 @@ async function cancelTrip() {
 
         if (!res.ok) throw new Error(data.message || 'Cancel failed');
 
-        // 1. Update local array from the PUT response — no refetch needed
-        const idx = allTrips.findIndex(t => t._id === tripId);
-        if (idx !== -1) {
-            if (data.data && typeof data.data === 'object') {
-                allTrips[idx] = data.data;
-            } else {
-                allTrips[idx].status = 'cancelled';
-            }
-            console.log('Local trip status now:', allTrips[idx].status);
-        } else {
-            console.warn('Trip not found in allTrips:', tripId);
-        }
+        // Remove from local list immediately
+        allTrips = allTrips.filter(t => t._id !== tripId);
+        console.log('Removed. Remaining:', allTrips.length);
 
-        // 2. Reset status filter so the cancelled trip remains visible
-        const statusFilter = document.getElementById('statusFilter');
-        if (statusFilter && statusFilter.value !== 'all' && statusFilter.value !== 'cancelled') {
-            statusFilter.value = 'all';
-        }
-
-        // 3. Close modal + re-render immediately
         closeDeleteModal();
         applyFilters();
         showToast('success', 'Trip cancelled', 'Booked students will be notified');
 
-        // 4. Silent background refetch — just to keep DB in sync
+        // Background refetch — but keep cancelled trips hidden
         setTimeout(() => {
             fetch('/api/trips', { credentials: 'include' })
                 .then(r => r.json())
-                .then(d => { if (d.data) { allTrips = d.data; applyFilters(); } })
+                .then(d => {
+                    if (d.data) {
+                        allTrips = d.data.filter(t => t.status !== 'cancelled');
+                        applyFilters();
+                    }
+                })
                 .catch(() => {});
         }, 800);
     } catch (err) {
