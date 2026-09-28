@@ -23,10 +23,8 @@ export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Bypass Mongoose casting — use raw collection (String _id safe)
     let user = await User.collection.findOne({ _id: id });
 
-    // Fallback: try ObjectId in case a doc was created with ObjectId _id
     if (!user) {
       try {
         user = await User.collection.findOne({
@@ -40,7 +38,6 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Strip sensitive fields
     delete user.password;
 
     res.json({ success: true, data: user });
@@ -204,7 +201,9 @@ export const createDriver = async (req, res) => {
   try {
     const { name, email, phone, licenseNumber, assignedBus, isActive = true, password } = req.body;
 
-    console.log("📥 createDriver body:", { name, email, phone, licenseNumber, assignedBus, isActive, hasPassword: !!password });
+    console.log("📥 createDriver body:", {
+      name, email, phone, licenseNumber, assignedBus, isActive, hasPassword: !!password,
+    });
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "name, email and password are required" });
@@ -214,28 +213,28 @@ export const createDriver = async (req, res) => {
     }
 
     const db = mongoose.connection.db;
+    const lowerEmail = String(email).toLowerCase().trim();
 
-    const existing = await db.collection("user").findOne({ email: email.toLowerCase() });
+    const existing = await db.collection("user").findOne({ email: lowerEmail });
     if (existing) {
       return res.status(400).json({ success: false, message: "A user with this email already exists" });
     }
 
+    // Create user via Better Auth
     const auth = getAuth();
     let userId = null;
 
     try {
       const signUpResult = await auth.api.signUpEmail({
         body: {
-          email: email.toLowerCase(),
+          email: lowerEmail,
           password,
           name,
-          role: "driver",
         },
       });
 
-      console.log("✅ Better Auth signUp result:", signUpResult);
-
       userId = signUpResult?.user?.id || signUpResult?.user?._id || null;
+      console.log("✅ Better Auth created user id:", userId);
 
       if (!userId) {
         throw new Error("Better Auth returned no user ID");
@@ -244,24 +243,74 @@ export const createDriver = async (req, res) => {
       console.error("❌ Better Auth sign-up failed:", baErr);
       return res.status(500).json({
         success: false,
-        message: "Account creation failed: " + baErr.message,
+        message: "Account creation failed: " + (baErr.message || "unknown"),
       });
+    }
+
+    // Cast to string (Better Auth uses String _id)
+    const userIdStr = String(userId);
+
+    // Safely handle assignedBus
+    let assignedBusValue = null;
+    if (assignedBus) {
+      try {
+        assignedBusValue = new mongoose.Types.ObjectId(String(assignedBus));
+      } catch {
+        assignedBusValue = null;
+      }
     }
 
     const updateData = {
       role: "driver",
       phone: phone || "",
       licenseNumber: licenseNumber || "",
-      assignedBus: assignedBus ? new mongoose.Types.ObjectId(assignedBus) : null,
+      assignedBus: assignedBusValue,
       isActive: !!isActive,
       updatedAt: new Date(),
     };
 
-    await db.collection("user").updateOne({ _id: userId }, { $set: updateData });
+    // Update by String _id
+    const updateResult = await db.collection("user").updateOne(
+      { _id: userIdStr },
+      { $set: updateData }
+    );
 
-    const newDriver = await db.collection("user").findOne({ _id: userId });
+    console.log("📝 Update by _id:", {
+      matched: updateResult.matchedCount,
+      modified: updateResult.modifiedCount,
+    });
 
-    console.log("✅ Driver created:", newDriver?.email);
+    // Fallback: match by email
+    if (updateResult.matchedCount === 0) {
+      const alt = await db.collection("user").updateOne(
+        { email: lowerEmail },
+        { $set: updateData }
+      );
+      console.log("🔁 Fallback update by email:", {
+        matched: alt.matchedCount,
+        modified: alt.modifiedCount,
+      });
+    }
+
+    // Verify role
+    const newDriver = await db.collection("user").findOne({ email: lowerEmail });
+    console.log("✅ Final role in DB:", newDriver?.role);
+
+    if (!newDriver) {
+      return res.status(500).json({
+        success: false,
+        message: "Driver created but could not be read back",
+      });
+    }
+
+    if (newDriver.role !== "driver") {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to set role=driver — current role: " + newDriver.role,
+      });
+    }
+
+    delete newDriver.password;
 
     res.status(201).json({ success: true, data: newDriver });
   } catch (err) {
@@ -336,12 +385,47 @@ export const resetDriverPassword = async (req, res) => {
 export const deleteDriver = async (req, res) => {
   try {
     const db = mongoose.connection.db;
+    const id = String(req.params.id);
 
-    await db.collection("user").deleteOne({ _id: req.params.id, role: "driver" });
-    await db.collection("account").deleteMany({ userId: req.params.id });
-    await db.collection("session").deleteMany({ userId: req.params.id });
+    console.log("🗑️ deleteDriver id:", id);
+
+    // 1. Look up the user first
+    let driver = await db.collection("user").findOne({ _id: id });
+
+    // Fallback: try ObjectId
+    if (!driver) {
+      try {
+        driver = await db.collection("user").findOne({
+          _id: new mongoose.Types.ObjectId(id),
+        });
+      } catch { /* ignore */ }
+    }
+
+    if (!driver) {
+      console.log("❌ Driver not found for id:", id);
+      return res.status(404).json({ success: false, message: "Driver not found" });
+    }
+
+    console.log("🗑️ Found driver:", driver.email, "| role:", driver.role);
+
+    const realId = String(driver._id);
+
+    // 2. Delete the user
+    const del = await db.collection("user").deleteOne({ _id: driver._id });
+    console.log("✅ Deleted user count:", del.deletedCount);
+
+    // 3. Clean up related collections
+    await db.collection("account").deleteMany({ userId: realId });
+    await db.collection("session").deleteMany({ userId: realId });
+
+    // 4. Unassign from buses
     await db.collection("buses").updateMany(
-      { currentDriver: req.params.id },
+      { currentDriver: driver._id },
+      { $set: { currentDriver: null } }
+    );
+    // Also try String match for safety
+    await db.collection("buses").updateMany(
+      { currentDriver: realId },
       { $set: { currentDriver: null } }
     );
 
