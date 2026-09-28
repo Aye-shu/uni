@@ -523,7 +523,7 @@ async function saveSchedule(e) {
 
     try {
         if (editingId) {
-            // ============ EDIT — updates a single trip ============
+            // ======== EDIT ========
             const res = await fetch(`/api/trips/${editingId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -534,7 +534,6 @@ async function saveSchedule(e) {
                     availableSeats: capacity,
                 }),
             });
-
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Update failed');
 
@@ -549,12 +548,14 @@ async function saveSchedule(e) {
                 }
             }
 
-            document.getElementById('dateFilter').value = '';
-            applyFilters();
-            showToast('success', 'Trip updated', 'Schedule saved successfully');
+            resetFilters();
+            closeModal();
+            showToast('success', 'Trip updated', 'Schedule saved');
 
         } else {
-            // ============ CREATE — always creates exactly ONE trip ============
+            // ======== CREATE — exactly ONE trip, no loop ========
+            console.log('🚀 Creating 1 trip only');
+
             const res = await fetch('/api/trips', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -589,16 +590,12 @@ async function saveSchedule(e) {
                 allTrips.push(data.data);
             }
 
-            document.getElementById('dateFilter').value = '';
-            applyFilters();
+            console.log('✅ Created 1 trip. Total now:', allTrips.length);
+
+            resetFilters();
+            closeModal();
             showToast('success', 'Trip created', 'One trip scheduled');
         }
-
-        closeModal();
-
-        // Silent background refresh
-        setTimeout(() => loadTrips(), 300);
-
     } catch (err) {
         console.error('Save error:', err);
         showToast('error', 'Save failed', err.message);
@@ -625,32 +622,17 @@ async function cancelTrip() {
             credentials: 'include',
             body: JSON.stringify({ status: 'cancelled' }),
         });
-
         const data = await res.json();
-        console.log('Cancel response:', res.status, data);
-
         if (!res.ok) throw new Error(data.message || 'Cancel failed');
 
-        // Remove from local list immediately
+        // Remove from local array — row disappears
+        const before = allTrips.length;
         allTrips = allTrips.filter(t => t._id !== tripId);
-        console.log('Removed. Remaining:', allTrips.length);
+        console.log(`Removed. ${before} → ${allTrips.length}`);
 
         closeDeleteModal();
-        applyFilters();
+        resetFilters();           // clear any active filters so nothing is hidden
         showToast('success', 'Trip cancelled', 'Booked students will be notified');
-
-        // Background refetch — but keep cancelled trips hidden
-        setTimeout(() => {
-            fetch('/api/trips', { credentials: 'include' })
-                .then(r => r.json())
-                .then(d => {
-                    if (d.data) {
-                        allTrips = d.data.filter(t => t.status !== 'cancelled');
-                        applyFilters();
-                    }
-                })
-                .catch(() => {});
-        }, 800);
     } catch (err) {
         console.error('cancelTrip error:', err);
         showToast('error', 'Cancel failed', err.message);
