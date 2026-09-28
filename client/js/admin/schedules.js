@@ -644,45 +644,40 @@ async function saveSchedule(e) {
 ===================================================== */
 async function cancelTrip() {
     if (!deleteTargetId) return;
+    const tripId = deleteTargetId;
     const btn = document.getElementById('confirmDeleteBtn');
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
 
     try {
-        const res = await fetch(`/api/trips/${deleteTargetId}`, {
+        // 1. Send the cancel request
+        const res = await fetch(`/api/trips/${tripId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ status: 'cancelled' }),
         });
+
         const data = await res.json();
+        console.log('Cancel response:', res.status, data);
 
         if (!res.ok) {
             throw new Error(data.message || 'Cancel failed');
         }
 
-        // Update the local array immediately — no refetch needed
-        const idx = allTrips.findIndex(t => t._id === deleteTargetId);
-        if (idx !== -1) {
-            if (data.data) {
-                // Server returned the full trip — use it
-                allTrips[idx] = data.data;
-            } else {
-                // Fallback: just flip the status locally
-                allTrips[idx].status = 'cancelled';
-            }
-        }
-
-        // If the status filter would hide the cancelled row, reset it
-        const statusFilter = document.getElementById('statusFilter');
-        if (statusFilter && statusFilter.value !== 'all' && statusFilter.value !== 'cancelled') {
-            statusFilter.value = 'all';
-        }
-
+        // 2. Close the modal + show success immediately
         closeDeleteModal();
-        applyFilters();               // ← re-render immediately
         showToast('success', 'Trip cancelled', 'Booked students will be notified');
+
+        // 3. Force a fresh refetch with cache buster
+        const refetchRes = await fetch(`/api/trips?_=${Date.now()}`, {
+            credentials: 'include',
+            cache: 'no-store',
+        });
+        const refetchData = await refetchRes.json();
+        allTrips = refetchData.data || [];
+        applyFilters();
     } catch (err) {
         console.error('cancelTrip error:', err);
         showToast('error', 'Cancel failed', err.message);
