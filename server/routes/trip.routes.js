@@ -9,9 +9,13 @@ import {
   createTrip,
   updateTrip,
   deleteTrip,
+  deleteAllTrips,
 } from "../controllers/trip.controller.js";
 
 const router = express.Router();
+
+// ⚠️ Bulk delete MUST come BEFORE /:id, otherwise "all" is treated as an id
+router.delete("/all", requireAuth, authorize("admin"), deleteAllTrips);
 
 router.get("/", getAllTrips);
 router.get("/:id/seats", getTripSeats);          // ← MUST be before /:id
