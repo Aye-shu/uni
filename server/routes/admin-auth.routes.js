@@ -10,7 +10,7 @@ router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, employeeId, phone, inviteCode } = req.body;
 
-    // 1. Validate
+    // ---- Validate ----
     if (!name || !email || !password || !inviteCode) {
       return res.status(400).json({
         success: false,
@@ -24,6 +24,7 @@ router.post("/signup", async (req, res) => {
       });
     }
 
+    // ---- Validate invite code ----
     const expectedCode = process.env.ADMIN_INVITE_CODE;
     if (!expectedCode) {
       return res.status(500).json({
@@ -38,9 +39,10 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    const lowerEmail = email.toLowerCase().trim();
+    // ---- Normalize email ----
+    const lowerEmail = String(email).toLowerCase().trim();
 
-    // 2. Check for existing user
+    // ---- Check for existing ----
     client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
     const db = client.db("uni");
@@ -53,14 +55,14 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // 3. Create user via Better Auth
+    // ---- Create user via Better Auth ----
     const auth = getAuth();
     const result = await auth.api.signUpEmail({
       body: { name, email: lowerEmail, password },
     });
 
     const userId = result?.user?.id || result?.user?._id || null;
-    console.log("👤 Better Auth created user:", userId);
+    console.log("👤 Better Auth created user:", userId, "| email:", lowerEmail);
 
     if (!userId) {
       return res.status(500).json({
@@ -69,7 +71,7 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // 4. Promote to admin — try by _id first, fall back to email
+    // ---- Promote to admin (try _id, fall back to email) ----
     let updateResult = await db.collection("user").updateOne(
       { _id: userId },
       {
@@ -87,7 +89,6 @@ router.post("/signup", async (req, res) => {
       modified: updateResult.modifiedCount,
     });
 
-    // Fallback: match by email if the id lookup missed
     if (updateResult.matchedCount === 0) {
       updateResult = await db.collection("user").updateOne(
         { email: lowerEmail },
@@ -106,20 +107,22 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // 5. Verify the role actually saved
+    // ---- Verify the role saved ----
     const finalUser = await db.collection("user").findOne({ email: lowerEmail });
     console.log("✅ Final DB role:", finalUser?.role);
 
     if (finalUser?.role !== "admin") {
       return res.status(500).json({
         success: false,
-        message: "Failed to promote user to admin — role is still: " + finalUser?.role,
+        message: "Failed to promote to admin — role is: " + finalUser?.role,
       });
     }
 
-    // 6. Delete any auto-created session so the user must log in fresh
-    //    (This prevents the "logged in as student" issue.)
-    await db.collection("session").deleteMany({ userId: String(userId) });
+    // ---- Delete auto-created session so they must log in fresh ----
+    const sessionDel = await db.collection("session").deleteMany({
+      userId: String(userId),
+    });
+    console.log("🧹 Deleted sessions:", sessionDel.deletedCount);
 
     return res.status(201).json({
       success: true,
