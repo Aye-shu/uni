@@ -217,3 +217,30 @@ export const getTripSeats = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// DELETE /api/trips/all — admin wipes ALL trips (bulk cleanup)
+export const deleteAllTrips = async (req, res) => {
+  try {
+    console.log("🗑️ deleteAllTrips requested by:", req.user?.email);
+
+    const result = await Trip.deleteMany({});
+    console.log("✅ Deleted trips:", result.deletedCount);
+
+    // Also clean up orphaned bookings
+    try {
+      const bResult = await Booking.deleteMany({});
+      console.log("✅ Deleted bookings:", bResult.deletedCount);
+    } catch (bErr) {
+      console.warn("⚠️ Booking cleanup failed:", bErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Deleted ${result.deletedCount} trips`,
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    console.error("❌ deleteAllTrips error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
