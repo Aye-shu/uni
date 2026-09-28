@@ -5,6 +5,7 @@
 let allNotifs = [];
 let currentFilter = 'all';
 let user = null;
+let socket = null;   // ← NEW
 
 document.addEventListener('DOMContentLoaded', async () => {
     user = await checkAuth();
@@ -43,7 +44,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     await loadNotifications();
+    initSocket(user);
 });
+
+/* =====================================================
+   SOCKET — live notifications
+===================================================== */
+function initSocket(user) {
+    if (typeof io === 'undefined') return;
+    try {
+        socket = io({ withCredentials: true });
+
+        socket.on('connect', () => {
+            console.log('🔌 Notifications socket connected');
+            if (user?.id) socket.emit('join-user', user.id);
+        });
+
+        socket.on('new-notification', (data) => {
+            console.log('🔔 Live notification received:', data);
+
+            // Prepend into the local list
+            allNotifs.unshift({
+                _id: 'live-' + Date.now(),
+                title: data.title || 'Notification',
+                message: data.message || '',
+                type: data.type || 'general',
+                isRead: false,
+                createdAt: data.timestamp || new Date().toISOString(),
+            });
+
+            updateCounts();
+            render();
+            showToast('info', data.title || 'New notification', data.message || '');
+        });
+    } catch (err) {
+        console.warn('Socket init failed:', err);
+    }
+}
 
 async function checkAuth() {
     try {
@@ -139,6 +176,15 @@ function render() {
 window.markRead = async function (id) {
     const n = allNotifs.find(x => x._id === id);
     if (!n || n.isRead) return;
+
+    // For live-only notifications (not yet saved in the DB), mark locally and skip the API call
+    if (String(id).startsWith('live-')) {
+        n.isRead = true;
+        updateCounts();
+        render();
+        return;
+    }
+
     try {
         await fetch(`/api/notifications/${id}/read`, {
             method: 'PUT',
@@ -151,6 +197,15 @@ window.markRead = async function (id) {
 };
 
 window.deleteNotif = async function (id) {
+    // Live-only notifications: just remove locally
+    if (String(id).startsWith('live-')) {
+        allNotifs = allNotifs.filter(n => n._id !== id);
+        updateCounts();
+        render();
+        showToast('success', 'Deleted', 'Notification removed.');
+        return;
+    }
+
     try {
         await fetch(`/api/notifications/${id}`, {
             method: 'DELETE',
@@ -218,3 +273,7 @@ function escapeHtml(s) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 }
+
+window.addEventListener('beforeunload', () => {
+    if (socket) { try { socket.disconnect(); } catch {} }
+});
