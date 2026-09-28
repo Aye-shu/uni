@@ -80,14 +80,17 @@ window.selectRole = function (role) {
     studentForm.style.display = 'block';
     if (adminForm) adminForm.style.display = 'none';
     if (notice) notice.style.display = 'none';
+  } else if (role === 'admin') {
+    studentForm.style.display = 'none';
+    if (adminForm) adminForm.style.display = 'block';
+    if (notice) notice.style.display = 'none';
   } else {
+    // Driver — show restricted notice
     studentForm.style.display = 'none';
     if (adminForm) adminForm.style.display = 'none';
     if (notice) {
       notice.style.display = 'block';
-      notice.innerHTML = role === 'admin'
-        ? '<i class="fas fa-lock"></i> Admin accounts are created by the system administrator. Contact your transport office.'
-        : '<i class="fas fa-lock"></i> Driver accounts are created by the admin. Please contact your transport office.';
+      notice.innerHTML = '<i class="fas fa-lock"></i> Driver accounts are created by the admin. Please contact your transport office.';
     }
   }
 };
@@ -211,13 +214,85 @@ async function handleStudentSignup(e) {
   }
 }
 
+// ---------- ADMIN SIGNUP ----------
+async function handleAdminSignup(e) {
+  e.preventDefault();
+
+  const name       = document.getElementById('adminName').value.trim();
+  const email      = document.getElementById('adminEmail').value.trim();
+  const employeeId = document.getElementById('adminEmployeeId').value.trim();
+  const phone      = document.getElementById('adminPhone').value.trim();
+  const inviteCode = document.getElementById('adminInviteCode').value.trim();
+  const password   = document.getElementById('adminPassword').value;
+  const confirm    = document.getElementById('adminConfirm').value;
+  const terms      = document.getElementById('adminTerms').checked;
+  const btn        = document.getElementById('adminSignupBtn');
+
+  hideMessage('adminMessage');
+
+  if (!name || !email || !employeeId || !inviteCode || !password || !confirm) {
+    showMessage('adminMessage', 'Please fill in all required fields.', 'error');
+    return;
+  }
+  if (password.length < 8) {
+    showMessage('adminMessage', 'Password must be at least 8 characters.', 'error');
+    return;
+  }
+  if (password !== confirm) {
+    showMessage('adminMessage', 'Passwords do not match.', 'error');
+    return;
+  }
+  if (!terms) {
+    showMessage('adminMessage', 'Please agree to the Terms & Conditions.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'CREATING...';
+
+  try {
+    const res = await fetch('/api/admin-auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        employeeId,
+        phone: phone || undefined,
+        inviteCode,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Admin signup failed');
+
+    showMessage('adminMessage', '✅ Admin account created! Switching to login...', 'success');
+    setTimeout(() => {
+      document.getElementById('signupFormAdmin').reset();
+      change_to_login();
+      hideMessage('adminMessage');
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').focus();
+    }, 1400);
+
+  } catch (err) {
+    showMessage('adminMessage', '❌ ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'SIGN UP';
+  }
+}
+
 // ---------- On Page Load ----------
 document.addEventListener('DOMContentLoaded', () => {
-  const loginForm = document.getElementById('loginForm');
+  const loginForm   = document.getElementById('loginForm');
   const studentForm = document.getElementById('signupFormStudent');
+  const adminForm   = document.getElementById('signupFormAdmin');
 
   if (loginForm)   loginForm.addEventListener('submit', handleLogin);
   if (studentForm) studentForm.addEventListener('submit', handleStudentSignup);
+  if (adminForm)   adminForm.addEventListener('submit', handleAdminSignup);
 
   if (window.location.pathname.endsWith('signup.html')) {
     setTimeout(() => change_to_sign_up(), 100);
