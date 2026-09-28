@@ -651,7 +651,6 @@ async function cancelTrip() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
 
     try {
-        // 1. Send the cancel request
         const res = await fetch(`/api/trips/${tripId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -662,22 +661,39 @@ async function cancelTrip() {
         const data = await res.json();
         console.log('Cancel response:', res.status, data);
 
-        if (!res.ok) {
-            throw new Error(data.message || 'Cancel failed');
+        if (!res.ok) throw new Error(data.message || 'Cancel failed');
+
+        // 1. Update local array from the PUT response — no refetch needed
+        const idx = allTrips.findIndex(t => t._id === tripId);
+        if (idx !== -1) {
+            if (data.data && typeof data.data === 'object') {
+                allTrips[idx] = data.data;
+            } else {
+                allTrips[idx].status = 'cancelled';
+            }
+            console.log('Local trip status now:', allTrips[idx].status);
+        } else {
+            console.warn('Trip not found in allTrips:', tripId);
         }
 
-        // 2. Close the modal + show success immediately
+        // 2. Reset status filter so the cancelled trip remains visible
+        const statusFilter = document.getElementById('statusFilter');
+        if (statusFilter && statusFilter.value !== 'all' && statusFilter.value !== 'cancelled') {
+            statusFilter.value = 'all';
+        }
+
+        // 3. Close modal + re-render immediately
         closeDeleteModal();
+        applyFilters();
         showToast('success', 'Trip cancelled', 'Booked students will be notified');
 
-        // 3. Force a fresh refetch with cache buster
-        const refetchRes = await fetch(`/api/trips?_=${Date.now()}`, {
-            credentials: 'include',
-            cache: 'no-store',
-        });
-        const refetchData = await refetchRes.json();
-        allTrips = refetchData.data || [];
-        applyFilters();
+        // 4. Silent background refetch — just to keep DB in sync
+        setTimeout(() => {
+            fetch('/api/trips', { credentials: 'include' })
+                .then(r => r.json())
+                .then(d => { if (d.data) { allTrips = d.data; applyFilters(); } })
+                .catch(() => {});
+        }, 800);
     } catch (err) {
         console.error('cancelTrip error:', err);
         showToast('error', 'Cancel failed', err.message);
