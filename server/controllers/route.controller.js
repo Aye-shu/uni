@@ -11,6 +11,17 @@ function makeRouteCode(name) {
   return `RT-${slug || "ROUTE"}-${suffix}`;
 }
 
+// Helper — ensure code is unique (appends -1, -2, ... if taken)
+async function generateUniqueCode(base) {
+  let code = base;
+  let n = 1;
+  while (await Route.exists({ code })) {
+    code = `${base}-${n}`;
+    n++;
+  }
+  return code;
+}
+
 // Helper — normalize a stop (accept string or object)
 function normalizeStop(s) {
   if (typeof s === "string") {
@@ -85,9 +96,13 @@ export const createRoute = async (req, res) => {
       });
     }
 
+    // Only change: resolve a unique code before saving
+    const desiredCode = code?.trim() || makeRouteCode(name);
+    const finalCode = await generateUniqueCode(desiredCode);
+
     const route = await Route.create({
       name:              name.trim(),
-      code:              code?.trim() || makeRouteCode(name),
+      code:              finalCode,
       description:       description || "",
       direction:         direction === "return" ? "return" : "outbound",
       distance:          Number(distance) || 0,
