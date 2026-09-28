@@ -83,17 +83,19 @@ const startServer = async () => {
     // 3. Disable caching for HTML AND API responses
     //    This MUST come before route mounting so it applies to everything below.
     app.use((req, res, next) => {
-      if (
-        req.path.endsWith(".html") ||
-        req.path === "/" ||
-        req.path.startsWith("/api/")     // ← FIX: no-cache for API responses too
-      ) {
-        res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-        res.set("Pragma", "no-cache");
-        res.set("Expires", "0");
-      }
-      next();
-    });
+  if (
+    req.path.endsWith(".html") ||
+    req.path.endsWith(".js") ||              // ← ADD THIS
+    req.path.endsWith(".css") ||             // ← ADD THIS
+    req.path === "/" ||
+    req.path.startsWith("/api/")
+  ) {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+  next();
+});
 
     // 4. API routes
     app.use("/api/admin-auth", adminAuthRoutes);
