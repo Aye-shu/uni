@@ -638,6 +638,7 @@ async function saveSchedule(e) {
         btn.innerHTML = originalText;
     }
 }
+
 /* =====================================================
    CANCEL TRIP
 ===================================================== */
@@ -657,22 +658,39 @@ async function cancelTrip() {
         });
         const data = await res.json();
 
-        if (!res.ok || !data.data) {
-            const delRes = await fetch(`/api/trips/${deleteTargetId}`, { method: 'DELETE', credentials: 'include' });
-            if (!delRes.ok) throw new Error(data.message || 'Cancel failed');
+        if (!res.ok) {
+            throw new Error(data.message || 'Cancel failed');
+        }
+
+        // Update the local array immediately — no refetch needed
+        const idx = allTrips.findIndex(t => t._id === deleteTargetId);
+        if (idx !== -1) {
+            if (data.data) {
+                // Server returned the full trip — use it
+                allTrips[idx] = data.data;
+            } else {
+                // Fallback: just flip the status locally
+                allTrips[idx].status = 'cancelled';
+            }
+        }
+
+        // If the status filter would hide the cancelled row, reset it
+        const statusFilter = document.getElementById('statusFilter');
+        if (statusFilter && statusFilter.value !== 'all' && statusFilter.value !== 'cancelled') {
+            statusFilter.value = 'all';
         }
 
         closeDeleteModal();
-        await loadTrips();
-        showToast('success', 'Trip cancelled', '');
+        applyFilters();               // ← re-render immediately
+        showToast('success', 'Trip cancelled', 'Booked students will be notified');
     } catch (err) {
+        console.error('cancelTrip error:', err);
         showToast('error', 'Cancel failed', err.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = original;
     }
 }
-
 /* =====================================================
    ERRORS
 ===================================================== */
