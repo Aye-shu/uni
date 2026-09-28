@@ -73,10 +73,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load data
     await Promise.all([loadRoutes(), loadBuses(), loadDrivers()]);
-    await loadActiveTrips();
 
-    // Init map (after data loads)
+    // Init map FIRST so plotBusesOnMap has a map to draw on
     initMap();
+
+    // Then load active trips (which plots the markers)
+    await loadActiveTrips();
 
     // Connect socket
     initSocket();
