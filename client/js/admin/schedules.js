@@ -516,28 +516,6 @@ async function saveSchedule(e) {
     const selectedBus = allBuses.find(b => idsMatch(b._id, busId));
     const capacity = selectedBus?.capacity || 40;
 
-    const dates = [];
-    const repeat = !editingId && document.getElementById('repeatToggle').checked;
-
-    if (repeat) {
-        const pattern = document.getElementById('repeatPattern').value;
-        const untilVal = document.getElementById('repeatUntil').value;
-        if (!untilVal) { showToast('error', 'Repeat end date required', ''); return; }
-        const until = new Date(untilVal);
-        const cur = new Date(dateVal);
-        while (cur <= until) {
-            const dayName = cur.toLocaleDateString('en-US', { weekday: 'long' });
-            let include = false;
-            if (pattern === 'daily') include = true;
-            else if (pattern === 'weekdays') include = !['Saturday', 'Sunday'].includes(dayName);
-            else if (pattern === 'weekly') include = dayName === day;
-            if (include) dates.push({ date: new Date(cur), day: dayName });
-            cur.setDate(cur.getDate() + 1);
-        }
-    } else {
-        dates.push({ date: selectedDate, day });
-    }
-
     const btn = document.getElementById('saveBtn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -545,7 +523,7 @@ async function saveSchedule(e) {
 
     try {
         if (editingId) {
-            // ============ EDIT ============
+            // ============ EDIT — updates a single trip ============
             const res = await fetch(`/api/trips/${editingId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -560,12 +538,9 @@ async function saveSchedule(e) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Update failed');
 
-            // ⚡ IMMEDIATE LOCAL UPDATE — no refetch needed
             const idx = allTrips.findIndex(t => t._id === editingId);
             if (idx !== -1 && data.data) {
                 allTrips[idx] = data.data;
-
-                // Ensure bus/route objects are attached (in case API returns IDs)
                 if (!allTrips[idx].bus || typeof allTrips[idx].bus !== 'object') {
                     allTrips[idx].bus = allBuses.find(b => idsMatch(b._id, busId));
                 }
@@ -574,60 +549,54 @@ async function saveSchedule(e) {
                 }
             }
 
-            // Clear date filter so nothing is hidden
             document.getElementById('dateFilter').value = '';
-
-            // Re-render immediately (shows the change right away)
             applyFilters();
-
             showToast('success', 'Trip updated', 'Schedule saved successfully');
 
         } else {
-            // ============ CREATE ============
-            let created = 0;
-            const createdTrips = [];
+            // ============ CREATE — always creates exactly ONE trip ============
+            const res = await fetch('/api/trips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    route: routeId,
+                    bus: busId,
+                    driver: driverId,
+                    date: selectedDate,
+                    day,
+                    direction,
+                    departureTime: departure,
+                    arrivalTime: arrival,
+                    status,
+                    notes,
+                    availableSeats: capacity,
+                    bookings: [],
+                    currentLocation: { latitude: 0, longitude: 0 },
+                }),
+            });
 
-            for (const d of dates) {
-                const res = await fetch('/api/trips', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        route: routeId, bus: busId, driver: driverId, date: d.date, day: d.day,
-                        direction, departureTime: departure, arrivalTime: arrival, status, notes,
-                        availableSeats: capacity, bookings: [],
-                        currentLocation: { latitude: 0, longitude: 0 },
-                    }),
-                });
-                const data = await res.json();
-                if (res.ok && data.data) {
-                    // Attach bus/route for immediate display
-                    if (!data.data.bus || typeof data.data.bus !== 'object') {
-                        data.data.bus = allBuses.find(b => idsMatch(b._id, busId));
-                    }
-                    if (!data.data.route || typeof data.data.route !== 'object') {
-                        data.data.route = allRoutes.find(r => idsMatch(r._id, routeId));
-                    }
-                    createdTrips.push(data.data);
-                    created++;
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Create failed');
+
+            if (data.data) {
+                if (!data.data.bus || typeof data.data.bus !== 'object') {
+                    data.data.bus = allBuses.find(b => idsMatch(b._id, busId));
                 }
+                if (!data.data.route || typeof data.data.route !== 'object') {
+                    data.data.route = allRoutes.find(r => idsMatch(r._id, routeId));
+                }
+                allTrips.push(data.data);
             }
 
-            // Add to local array immediately
-            createdTrips.forEach(t => allTrips.push(t));
-
-            // Clear date filter
             document.getElementById('dateFilter').value = '';
-
-            // Re-render
             applyFilters();
-
-            showToast('success', `${created} trip${created !== 1 ? 's' : ''} created`, '');
+            showToast('success', 'Trip created', 'One trip scheduled');
         }
 
         closeModal();
 
-        // Optional: silent background refresh to fully sync with server
+        // Silent background refresh
         setTimeout(() => loadTrips(), 300);
 
     } catch (err) {
@@ -638,7 +607,6 @@ async function saveSchedule(e) {
         btn.innerHTML = originalText;
     }
 }
-
 /* =====================================================
    CANCEL TRIP
 ===================================================== */
