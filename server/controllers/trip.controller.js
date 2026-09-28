@@ -25,6 +25,7 @@ export const getAllTrips = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 // GET /api/trips/:id
 export const getTripById = async (req, res) => {
   try {
@@ -48,12 +49,61 @@ export const getTripById = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 // POST /api/trips (admin)
 export const createTrip = async (req, res) => {
   try {
-    const trip = await Trip.create(req.body);
-    res.status(201).json({ success: true, data: trip });
+    const {
+      route, bus, driver, date, day, direction,
+      departureTime, arrivalTime, status, notes,
+      availableSeats, bookings, currentLocation,
+    } = req.body;
+
+    console.log("📥 createTrip body:", {
+      route, bus, driver, day, direction,
+      departureTime, arrivalTime, availableSeats,
+    });
+
+    // Basic validation
+    const missing = [];
+    if (!route)          missing.push("route");
+    if (!bus)            missing.push("bus");
+    if (!driver)         missing.push("driver");
+    if (!departureTime)  missing.push("departureTime");
+    if (!arrivalTime)    missing.push("arrivalTime");
+
+    if (missing.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: " + missing.join(", "),
+      });
+    }
+
+    const trip = await Trip.create({
+      route,
+      bus,
+      driver: String(driver),
+      date: date ? new Date(date) : new Date(),
+      day: day || new Date(date || Date.now()).toLocaleDateString("en-US", { weekday: "long" }),
+      direction: direction || "outbound",
+      departureTime,
+      arrivalTime,
+      status: status || "scheduled",
+      notes: notes || "",
+      availableSeats: Number(availableSeats) || 0,
+      bookings: bookings || [],
+      currentLocation: currentLocation || { latitude: 0, longitude: 0 },
+    });
+
+    const populated = await Trip.findById(trip._id)
+      .populate("bus")
+      .populate({ path: "route", populate: { path: "stops" } });
+
+    console.log("✅ Trip created:", trip._id);
+
+    res.status(201).json({ success: true, data: populated });
   } catch (err) {
+    console.error("❌ createTrip error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -61,13 +111,29 @@ export const createTrip = async (req, res) => {
 // PUT /api/trips/:id (admin)
 export const updateTrip = async (req, res) => {
   try {
-    const trip = await Trip.findByIdAndUpdate(req.params.id, req.body, {
+    const updates = { ...req.body };
+
+    if (updates.driver !== undefined) updates.driver = String(updates.driver);
+    if (updates.date   !== undefined) updates.date   = new Date(updates.date);
+    if (updates.availableSeats !== undefined) {
+      updates.availableSeats = Number(updates.availableSeats);
+    }
+
+    console.log("📥 updateTrip", req.params.id, updates);
+
+    const trip = await Trip.findByIdAndUpdate(req.params.id, updates, {
       new: true,
       runValidators: true,
-    });
+    })
+      .populate("bus")
+      .populate({ path: "route", populate: { path: "stops" } });
+
     if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
+
+    console.log("✅ Trip updated:", trip._id);
     res.json({ success: true, data: trip });
   } catch (err) {
+    console.error("❌ updateTrip error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -75,9 +141,25 @@ export const updateTrip = async (req, res) => {
 // DELETE /api/trips/:id (admin)
 export const deleteTrip = async (req, res) => {
   try {
-    await Trip.findByIdAndDelete(req.params.id);
+    console.log("🗑️ deleteTrip:", req.params.id);
+
+    const trip = await Trip.findByIdAndDelete(req.params.id);
+    if (!trip) {
+      console.log("❌ Trip not found:", req.params.id);
+      return res.status(404).json({ success: false, message: "Trip not found" });
+    }
+
+    // Clean up bookings tied to this trip
+    try {
+      await Booking.deleteMany({ trip: req.params.id });
+    } catch (bErr) {
+      console.warn("⚠️ Booking cleanup failed:", bErr.message);
+    }
+
+    console.log("✅ Trip deleted:", req.params.id);
     res.json({ success: true, message: "Trip deleted" });
   } catch (err) {
+    console.error("❌ deleteTrip error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
