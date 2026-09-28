@@ -1,11 +1,41 @@
 // server/controllers/route.controller.js
 import Route from "../models/Route.js";
-import Stop from "../models/Stop.js";
+
+// Helper — generate a unique route code from a name
+function makeRouteCode(name) {
+  const slug = String(name)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 5);
+  const suffix = Date.now().toString(36).slice(-4).toUpperCase();
+  return `RT-${slug || "ROUTE"}-${suffix}`;
+}
+
+// Helper — normalize a stop (accept string or object)
+function normalizeStop(s) {
+  if (typeof s === "string") {
+    return {
+      name: s.trim(),
+      address: "",
+      isCampusStop: false,
+      location: { latitude: 0, longitude: 0 },
+    };
+  }
+  return {
+    name: (s?.name || "").trim(),
+    address: s?.address || "",
+    isCampusStop: !!s?.isCampusStop,
+    location: {
+      latitude:  Number(s?.location?.latitude)  || 0,
+      longitude: Number(s?.location?.longitude) || 0,
+    },
+  };
+}
 
 // GET /api/routes
 export const getAllRoutes = async (req, res) => {
   try {
-    const routes = await Route.find({}).populate("stops").sort({ name: 1 });
+    const routes = await Route.find({}).sort({ name: 1 });
     res.json({ success: true, data: routes });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -15,7 +45,7 @@ export const getAllRoutes = async (req, res) => {
 // GET /api/routes/:id
 export const getRouteById = async (req, res) => {
   try {
-    const route = await Route.findById(req.params.id).populate("stops");
+    const route = await Route.findById(req.params.id);
     if (!route) return res.status(404).json({ success: false, message: "Route not found" });
     res.json({ success: true, data: route });
   } catch (err) {
@@ -23,20 +53,19 @@ export const getRouteById = async (req, res) => {
   }
 };
 
-// Helper — build a unique stop code from a name
-function makeStopCode(name, index) {
-  const slug = String(name)
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 6);
-  const suffix = Date.now().toString(36).slice(-4).toUpperCase();
-  return `STP-${slug || "STOP"}-${index + 1}-${suffix}`;
-}
-
 // POST /api/routes (admin)
 export const createRoute = async (req, res) => {
   try {
-    const { name, direction, distance, description, status, stops } = req.body;
+    const {
+      name,
+      code,
+      description,
+      direction,
+      distance,
+      estimatedDuration,
+      status,
+      stops,
+    } = req.body;
 
     if (!name || !Array.isArray(stops) || stops.length === 0) {
       return res.status(400).json({
@@ -45,55 +74,31 @@ export const createRoute = async (req, res) => {
       });
     }
 
-    // 1. Create Stop documents (auto-fill required fields)
-    const stopIds = [];
-    for (let i = 0; i < stops.length; i++) {
-      const s = stops[i];
+    const cleanStops = stops
+      .map(normalizeStop)
+      .filter(s => s.name);
 
-      const stopName = typeof s === "string"
-        ? s.trim()
-        : (s.name || "").trim();
-
-      if (!stopName) continue;
-
-      const lat = s?.location?.latitude ?? s?.latitude ?? null;
-      const lng = s?.location?.longitude ?? s?.longitude ?? null;
-
-      const stopDoc = await Stop.create({
-        name: stopName,
-        code: s?.code || makeStopCode(stopName, i),
-        location: {
-          latitude:  Number.isFinite(lat) ? lat : 0,
-          longitude: Number.isFinite(lng) ? lng : 0,
-        },
-        address: s?.address || "",
-        isCampusStop: !!s?.isCampusStop,
-      });
-
-      stopIds.push(stopDoc._id);
-    }
-
-    if (stopIds.length === 0) {
+    if (cleanStops.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No valid stops provided",
       });
     }
 
-    // 2. Create the Route referencing those stops
     const route = await Route.create({
-      name:        name.trim(),
-      direction:   direction || "outbound",
-      distance:    Number(distance) || 0,
-      description: description || "",
-      status:      status || "active",
-      stops:       stopIds,
+      name:              name.trim(),
+      code:              code?.trim() || makeRouteCode(name),
+      description:       description || "",
+      direction:         direction === "return" ? "return" : "outbound",
+      distance:          Number(distance) || 0,
+      estimatedDuration: Number(estimatedDuration) || 0,
+      status:            status === "inactive" ? "inactive" : "active",
+      startPoint:        cleanStops[0].name,
+      endPoint:          cleanStops[cleanStops.length - 1].name,
+      stops:             cleanStops,
     });
 
-    // 3. Return with populated stops
-    const populated = await Route.findById(route._id).populate("stops");
-
-    res.status(201).json({ success: true, data: populated });
+    res.status(201).json({ success: true, data: route });
   } catch (err) {
     console.error("createRoute error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -103,13 +108,27 @@ export const createRoute = async (req, res) => {
 // PUT /api/routes/:id (admin)
 export const updateRoute = async (req, res) => {
   try {
-    const route = await Route.findByIdAndUpdate(req.params.id, req.body, {
+    const updates = { ...req.body };
+
+    if (Array.isArray(updates.stops)) {
+      const cleanStops = updates.stops
+        .map(normalizeStop)
+        .filter(s => s.name);
+      updates.stops = cleanStops;
+      if (cleanStops.length > 0) {
+        updates.startPoint = cleanStops[0].name;
+        updates.endPoint = cleanStops[cleanStops.length - 1].name;
+      }
+    }
+
+    const route = await Route.findByIdAndUpdate(req.params.id, updates, {
       new: true,
       runValidators: true,
     });
     if (!route) return res.status(404).json({ success: false, message: "Route not found" });
     res.json({ success: true, data: route });
   } catch (err) {
+    console.error("updateRoute error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -117,43 +136,29 @@ export const updateRoute = async (req, res) => {
 // DELETE /api/routes/:id (admin)
 export const deleteRoute = async (req, res) => {
   try {
-    const route = await Route.findById(req.params.id);
+    const route = await Route.findByIdAndDelete(req.params.id);
     if (!route) return res.status(404).json({ success: false, message: "Route not found" });
-
-    // Clean up orphaned stop documents
-    if (Array.isArray(route.stops) && route.stops.length) {
-      await Stop.deleteMany({ _id: { $in: route.stops } });
-    }
-
-    await Route.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Route deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// POST /api/routes/:id/stops — add a stop to route (admin)
+// POST /api/routes/:id/stops — append a stop to an existing route (admin)
 export const addStopToRoute = async (req, res) => {
   try {
-    const { name } = req.body;
-    const stop = await Stop.create({
-      name,
-      code: req.body.code || makeStopCode(name, 0),
-      location: {
-        latitude:  req.body?.location?.latitude  ?? 0,
-        longitude: req.body?.location?.longitude ?? 0,
-      },
-      address: req.body.address || "",
-      isCampusStop: !!req.body.isCampusStop,
-    });
+    const newStop = normalizeStop(req.body);
+    if (!newStop.name) {
+      return res.status(400).json({ success: false, message: "Stop name is required" });
+    }
 
-    const route = await Route.findByIdAndUpdate(
-      req.params.id,
-      { $push: { stops: stop._id } },
-      { new: true }
-    ).populate("stops");
-
+    const route = await Route.findById(req.params.id);
     if (!route) return res.status(404).json({ success: false, message: "Route not found" });
+
+    route.stops.push(newStop);
+    route.endPoint = newStop.name;
+    await route.save();
+
     res.status(201).json({ success: true, data: route });
   } catch (err) {
     console.error("addStopToRoute error:", err);
