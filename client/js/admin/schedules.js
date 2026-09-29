@@ -21,6 +21,28 @@ const STATUS_LABELS = {
 
 const idsMatch = (a, b) => a && b && String(a) === String(b);
 
+/* ─────────────────────────────────────────────────────────
+   NEW: timezone-safe date helpers
+   (avoids UTC shifting the date by a day)
+   ───────────────────────────────────────────────────────── */
+function getTodayLocal() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function toLocalDateInput(dateValue) {
+    if (!dateValue) return '';
+    const d = new Date(dateValue);
+    if (Number.isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     user = await checkAuth();
     if (!user) return;
@@ -435,9 +457,8 @@ function openModal(trip = null) {
         document.getElementById('scheduleArrival').value = trip.arrivalTime || '';
         document.getElementById('scheduleStatus').value = trip.status === 'cancelled' ? 'cancelled' : 'scheduled';
 
-        if (trip.date) {
-            document.getElementById('scheduleDate').value = new Date(trip.date).toISOString().split('T')[0];
-        }
+        // ✅ Timezone-safe: use local date
+        document.getElementById('scheduleDate').value = toLocalDateInput(trip.date);
 
         const driverSelect = document.getElementById('scheduleDriver');
         if (driverId && driverSelect.value !== driverId) {
@@ -448,7 +469,8 @@ function openModal(trip = null) {
             driverSelect.value = driverId;
         }
     } else {
-        document.getElementById('scheduleDate').value = new Date().toISOString().split('T')[0];
+        // ✅ Timezone-safe: use local date
+        document.getElementById('scheduleDate').value = getTodayLocal();
     }
 
     document.getElementById('scheduleModal').classList.add('active');
@@ -511,7 +533,8 @@ async function saveSchedule(e) {
     }
     if (hasError) return;
 
-    const selectedDate = new Date(dateVal);
+    // ✅ Timezone-safe date: noon UTC ensures the day is stable across timezones
+    const selectedDate = new Date(dateVal + 'T12:00:00');
     const day = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
     const selectedBus = allBuses.find(b => idsMatch(b._id, busId));
     const capacity = selectedBus?.capacity || 40;
