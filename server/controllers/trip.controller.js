@@ -166,7 +166,6 @@ export const deleteTrip = async (req, res) => {
 };
 
 // GET /api/trips/:id/passengers — list passengers with student details
-// Uses the raw MongoDB driver because Booking.student is a String id
 export const getTripPassengers = async (req, res) => {
   try {
     const bookings = await Booking.find({
@@ -181,26 +180,32 @@ export const getTripPassengers = async (req, res) => {
       return res.json({ success: true, data: [] });
     }
 
-    // Collect unique student ids
-    const studentIds = [
+    const studentIdsStr = [
       ...new Set(bookings.map(b => String(b.student)).filter(Boolean)),
     ];
 
-    console.log("[/passengers] looking up user ids:", studentIds);
-
-    // Raw MongoDB driver — bypasses any Mongoose casting issues
     const db = mongoose.connection.db;
+
+    // Build ObjectId versions for the same ids
+    const studentIdsObj = studentIdsStr
+      .map(id => {
+        try { return new mongoose.Types.ObjectId(id); }
+        catch { return null; }
+      })
+      .filter(Boolean);
+
+    // Query with BOTH — matches ObjectId records AND String records
     const users = await db.collection("user")
-      .find({ _id: { $in: studentIds } })
-      .project({ name: 1, email: 1, phone: 1, studentId: 1, department: 1 })
+      .find({ _id: { $in: [...studentIdsObj, ...studentIdsStr] } })
       .toArray();
 
-    console.log("[/passengers] found users:", users.length);
+    console.log(`[/passengers] ids: ${studentIdsStr.length}, users found: ${users.length}`);
 
     const usersMap = {};
-    users.forEach(u => { usersMap[String(u._id)] = u; });
+    users.forEach(u => {
+      usersMap[String(u._id)] = u;
+    });
 
-    // Attach student info to each booking
     const passengers = bookings.map(b => {
       const u = usersMap[String(b.student)] || null;
       return {
