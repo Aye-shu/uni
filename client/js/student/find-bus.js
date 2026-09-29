@@ -16,19 +16,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('userRole').textContent = user.role || 'student';
     document.getElementById('userAvatar').textContent = (user.name || 'S').charAt(0).toUpperCase();
 
-    // ---------- Default date = today, but allow ?date= override ----------
+    // ---------- Default date = today (local) ----------
     const dateInput = document.getElementById('filterDate');
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocal();
     dateInput.min = today;
 
-    // Read query params from landing page search
     const urlParams = new URLSearchParams(window.location.search);
     const paramDate = urlParams.get('date');
     const paramDirection = urlParams.get('direction');
 
     dateInput.value = paramDate || today;
 
-    // Pre-select direction
     const directionSelect = document.getElementById('filterDirection');
     if (directionSelect && paramDirection) {
         directionSelect.value = paramDirection === 'return' ? 'return' : 'outbound';
@@ -57,12 +55,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('searchBtn')?.addEventListener('click', searchBuses);
     document.getElementById('resetBtn')?.addEventListener('click', resetFilters);
     document.getElementById('filterDirection')?.addEventListener('change', searchBuses);
-    document.getElementById('filterSort')?.addEventListener('change', renderBusList);
+    document.getElementById('filterSort')?.addEventListener('change', () => renderBusList());
     document.getElementById('filterDate')?.addEventListener('change', searchBuses);
 
     // ---------- Initial load ----------
     await Promise.all([loadClasses(), searchBuses()]);
 });
+
+/* =====================================================
+   LOCAL DATE HELPER — avoids UTC shifting the day
+===================================================== */
+function getTodayLocal() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
 
 /* =====================================================
    AUTH
@@ -94,6 +103,7 @@ async function loadClasses() {
         const res = await fetch('/api/classes', { credentials: 'include' });
         const data = await res.json();
         userClasses = data.data || [];
+        console.log('📚 Loaded classes:', userClasses.length);
     } catch (err) {
         console.error('Failed to load classes:', err);
         userClasses = [];
@@ -107,17 +117,16 @@ async function searchBuses() {
     const direction = document.getElementById('filterDirection').value;
     const date = document.getElementById('filterDate').value;
 
-    // Show loading
     showSkeleton();
 
     try {
-        // Fetch all trips and filter by direction
         const tripsRes = await fetch(`/api/trips?direction=${direction}`, { credentials: 'include' });
         const tripsData = await tripsRes.json();
         let trips = tripsData.data || [];
 
-        // Filter trips by day matching the selected date
-        const selectedDay = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+        // Timezone-safe day-of-week lookup
+        const selectedDay = new Date(date + 'T12:00:00')
+            .toLocaleDateString('en-US', { weekday: 'long' });
         trips = trips.filter(t =>
             t.status === 'scheduled' &&
             (t.day === selectedDay || !t.day)
@@ -125,7 +134,6 @@ async function searchBuses() {
 
         allBuses = trips;
 
-        // Compute recommendation
         recommendation = computeRecommendation(trips, date, direction);
         renderRecommendation(recommendation);
         renderBusList();
@@ -141,43 +149,55 @@ async function searchBuses() {
 
 /* =====================================================
    COMPUTE RECOMMENDATION
-   Best bus = departs 60–90 min before the next class
+   - Picks next upcoming class (today) or earliest class (future date)
+   - Falls back to last class of the day if all have passed
+   - Falls back to nearest bus if none fit the ideal timing window
 ===================================================== */
 function computeRecommendation(trips, date, direction) {
     if (trips.length === 0) return null;
 
-    const selectedDay = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+    const selectedDay = new Date(date + 'T12:00:00')
+        .toLocaleDateString('en-US', { weekday: 'long' });
+
     const classesToday = userClasses
         .filter(c => c.day === selectedDay)
         .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
+    console.log('📚 Classes for', selectedDay + ':', classesToday.length);
+
     if (classesToday.length === 0) return null;
 
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    const isToday = date === new Date().toISOString().split('T')[0];
+    // Timezone-safe "is today?" check
+    const isToday = date === getTodayLocal();
 
-    // Find next upcoming class
-    let nextClass = classesToday[0];
+    let targetClass = classesToday[0];
     if (isToday) {
+        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
         const upcoming = classesToday.find(c => timeToMinutes(c.startTime) > nowMin);
-        if (!upcoming) return null;
-        nextClass = upcoming;
+        // Fall back to the LAST class of the day if all have passed
+        targetClass = upcoming || classesToday[classesToday.length - 1];
     }
 
-    const classStart = timeToMinutes(nextClass.startTime);
+    const classStart = timeToMinutes(targetClass.startTime);
 
-    // Best bus: departs 60–120 min before class start
-    const candidates = trips
+    // Ideal: departs 30–120 min before class, closest to 75 min before
+    let candidates = trips
         .filter(t => t.availableSeats > 0)
         .map(t => ({ trip: t, dep: timeToMinutes(t.departureTime) }))
         .filter(x => x.dep >= classStart - 120 && x.dep <= classStart - 30)
         .sort((a, b) => Math.abs(a.dep - (classStart - 75)) - Math.abs(b.dep - (classStart - 75)));
 
+    // Fallback: nearest available bus to the class time
+    if (candidates.length === 0) {
+        candidates = trips
+            .filter(t => t.availableSeats > 0)
+            .map(t => ({ trip: t, dep: timeToMinutes(t.departureTime) }))
+            .sort((a, b) => Math.abs(a.dep - classStart) - Math.abs(b.dep - classStart));
+    }
+
     if (candidates.length === 0) return null;
 
-    const best = candidates[0].trip;
-    return { trip: best, class: nextClass };
+    return { trip: candidates[0].trip, class: targetClass };
 }
 
 /* =====================================================
@@ -187,12 +207,26 @@ function renderRecommendation(rec) {
     const container = document.getElementById('recommendationBanner');
 
     if (!rec) {
+        // Show a specific reason so the student knows what to fix
+        const date = document.getElementById('filterDate').value;
+        const selectedDay = new Date(date + 'T12:00:00')
+            .toLocaleDateString('en-US', { weekday: 'long' });
+        const hasClasses = userClasses.some(c => c.day === selectedDay);
+        const hasTrips = allBuses.length > 0;
+
+        let reason = 'No upcoming class found. Browse all available buses below.';
+        if (!hasClasses) {
+            reason = `You have no classes scheduled for ${selectedDay}. Add them in My Classes to get recommendations.`;
+        } else if (!hasTrips) {
+            reason = 'No buses available for this date and direction.';
+        }
+
         container.innerHTML = `
             <div class="rec-banner no-rec">
                 <div class="rec-icon"><i class="fas fa-info-circle"></i></div>
                 <div class="rec-info">
                     <h3>No recommendation right now</h3>
-                    <p>No upcoming class found. Browse all available buses below.</p>
+                    <p>${escapeHtml(reason)}</p>
                 </div>
             </div>`;
         return;
@@ -208,9 +242,9 @@ function renderRecommendation(rec) {
             <span class="rec-badge"><i class="fas fa-star"></i> Recommended</span>
             <div class="rec-icon"><i class="fas fa-bus"></i></div>
             <div class="rec-info">
-                <h3>${busNum} · ${escapeHtml(routeName)}</h3>
+                <h3>${escapeHtml(busNum)} · ${escapeHtml(routeName)}</h3>
                 <p>Best bus for your next class</p>
-                <span class="rec-why">Based on your ${escapeHtml(cls.code || cls.subject)} class at ${formatTime(cls.startTime)}</span>
+                <span class="rec-why">Based on your ${escapeHtml(cls.code || cls.subject || 'class')} at ${formatTime(cls.startTime)}</span>
                 <div class="rec-meta">
                     <span><i class="fas fa-clock"></i> Departs ${formatTime(t.departureTime)}</span>
                     <span><i class="fas fa-chair"></i> ${t.availableSeats} seats left</span>
@@ -233,13 +267,11 @@ function renderBusList() {
 
     let buses = [...allBuses];
 
-    // Sort
     if (sortBy === 'departure') {
         buses.sort((a, b) => timeToMinutes(a.departureTime) - timeToMinutes(b.departureTime));
     } else if (sortBy === 'seats') {
         buses.sort((a, b) => b.availableSeats - a.availableSeats);
     } else {
-        // recommended: put recommended first
         if (recommendation) {
             buses.sort((a, b) => {
                 if (a._id === recommendation.trip._id) return -1;
@@ -355,7 +387,6 @@ window.bookBus = function (tripId) {
     const trip = allBuses.find(t => t._id === tripId);
     if (!trip) return;
 
-    // Save selected trip for seat-selection page
     localStorage.setItem('unibus_selected_trip', JSON.stringify({
         tripId,
         busNumber: trip.bus?.busNumber,
@@ -365,7 +396,7 @@ window.bookBus = function (tripId) {
         date: document.getElementById('filterDate').value,
     }));
 
-    window.location.href = `/student/seat-selection.html?tripId=${tripId}`;
+    window.location.href = `/student/seat-selection.html?tripId=${tripId}&date=${document.getElementById('filterDate').value}`;
 };
 
 window.trackBus = function (tripId) {
@@ -376,7 +407,7 @@ window.trackBus = function (tripId) {
    RESET FILTERS
 ===================================================== */
 function resetFilters() {
-    document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('filterDate').value = getTodayLocal();
     document.getElementById('filterDirection').value = 'outbound';
     document.getElementById('filterSort').value = 'recommended';
     searchBuses();
