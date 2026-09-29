@@ -2,6 +2,7 @@
 import Trip from "../models/Trip.js";
 import Booking from "../models/Booking.js";
 import Bus from "../models/Bus.js";
+import User from "../models/User.js";
 
 // GET /api/trips — list all trips (with filters)
 export const getAllTrips = async (req, res) => {
@@ -164,18 +165,64 @@ export const deleteTrip = async (req, res) => {
   }
 };
 
-// GET /api/trips/:id/passengers
+// GET /api/trips/:id/passengers — list passengers with student details
+// NOTE: Booking.student is a String id (Better Auth), so we manually
+// look up each student's info from the user collection.
 export const getTripPassengers = async (req, res) => {
   try {
-    const passengers = await Booking.find({
+    const bookings = await Booking.find({
       trip: req.params.id,
       status: "confirmed",
     })
-      .populate("student", "name email phone")
       .populate("pickupStop")
-      .populate("dropoffStop");
+      .populate("dropoffStop")
+      .lean();
+
+    if (!bookings.length) {
+      return res.json({ success: true, data: [] });
+    }
+
+    // Collect unique student ids
+    const studentIds = [
+      ...new Set(bookings.map(b => String(b.student)).filter(Boolean)),
+    ];
+
+    // Fetch matching user documents manually
+    const users = await User.find({ _id: { $in: studentIds } })
+      .select("name email phone studentId department")
+      .lean();
+
+    const usersMap = {};
+    users.forEach(u => { usersMap[String(u._id)] = u; });
+
+    // Attach student info to each booking
+    const passengers = bookings.map(b => {
+      const u = usersMap[String(b.student)] || null;
+      return {
+        ...b,
+        student: u
+          ? {
+              _id: u._id,
+              name: u.name || "Student",
+              email: u.email || "",
+              phone: u.phone || "",
+              studentId: u.studentId || "",
+              department: u.department || "",
+            }
+          : {
+              _id: b.student || null,
+              name: "Passenger",
+              email: "",
+              phone: "",
+              studentId: "",
+              department: "",
+            },
+      };
+    });
+
     res.json({ success: true, data: passengers });
   } catch (err) {
+    console.error("getTripPassengers error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
