@@ -2,7 +2,7 @@
 import Trip from "../models/Trip.js";
 import Booking from "../models/Booking.js";
 import Bus from "../models/Bus.js";
-import User from "../models/User.js";
+import mongoose from "mongoose";
 
 // GET /api/trips — list all trips (with filters)
 export const getAllTrips = async (req, res) => {
@@ -166,8 +166,7 @@ export const deleteTrip = async (req, res) => {
 };
 
 // GET /api/trips/:id/passengers — list passengers with student details
-// NOTE: Booking.student is a String id (Better Auth), so we manually
-// look up each student's info from the user collection.
+// Uses the raw MongoDB driver because Booking.student is a String id
 export const getTripPassengers = async (req, res) => {
   try {
     const bookings = await Booking.find({
@@ -187,10 +186,16 @@ export const getTripPassengers = async (req, res) => {
       ...new Set(bookings.map(b => String(b.student)).filter(Boolean)),
     ];
 
-    // Fetch matching user documents manually
-    const users = await User.find({ _id: { $in: studentIds } })
-      .select("name email phone studentId department")
-      .lean();
+    console.log("[/passengers] looking up user ids:", studentIds);
+
+    // Raw MongoDB driver — bypasses any Mongoose casting issues
+    const db = mongoose.connection.db;
+    const users = await db.collection("user")
+      .find({ _id: { $in: studentIds } })
+      .project({ name: 1, email: 1, phone: 1, studentId: 1, department: 1 })
+      .toArray();
+
+    console.log("[/passengers] found users:", users.length);
 
     const usersMap = {};
     users.forEach(u => { usersMap[String(u._id)] = u; });
